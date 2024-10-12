@@ -1,0 +1,149 @@
+<?php
+// Function to check if a given page should be marked as active
+function isPageActive($pageName)
+{
+  $currentPage = basename($_SERVER['PHP_SELF']);
+  return ($currentPage === $pageName) ? 'active' : '';
+}
+
+// Function to check if the dropdown menu should be active
+function isDropdownActive($pageNames = [])
+{
+  $currentPage = basename($_SERVER['PHP_SELF']);
+  return in_array($currentPage, $pageNames) ? 'active' : '';
+}
+
+$isLoggedIn = isset($_SESSION['Username']); // Check if the user is logged in
+$username = $_SESSION['Username'] ?? ''; // Get the full name if logged in
+
+// Database connection
+$conn = mysqli_connect('localhost', 'root', '', 'novocamera');
+
+// Check if the connection was successful
+if (!$conn) {
+  die("Connection failed: " . mysqli_connect_error());
+}
+$user_id = (int)$_SESSION['user_id'];
+$notificationsQuery = "SELECT * FROM notifications WHERE user_id = $user_id ORDER BY created_at DESC LIMIT 5";
+$notificationsResult = mysqli_query($conn, $notificationsQuery);
+$unreadCountQuery = "SELECT COUNT(*) as unread_count FROM notifications WHERE user_id = $user_id AND is_read = 0";
+$unreadCountResult = mysqli_query($conn, $unreadCountQuery);
+$unreadNotifications = 0;
+
+if ($unreadCountResult) {
+  $row = mysqli_fetch_assoc($unreadCountResult);
+  $unreadNotifications = $row['unread_count'];
+}
+
+if ($isLoggedIn) {
+  $query = "SELECT profile_picture FROM users WHERE user_id = $user_id";
+  $result = mysqli_query($conn, $query);
+
+  if ($result && mysqli_num_rows($result) > 0) {
+      $row = mysqli_fetch_assoc($result);
+      if (!empty($row['profile_picture'])) {
+          $profilePic = $row['profile_picture']; // Use the user's profile picture
+      }
+  }
+}
+?>
+
+<header class="header_area">
+  <div class="main_menu">
+    <nav class="navbar navbar-expand-lg navbar-light d-flex align-items-center">
+      <div class="container box_1620">
+        <a class="navbar-brand logo_h" href="index.php"><img src="../assets/images/logo.png" alt="Logo"></a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse offset" id="navbarSupportedContent">
+          <!-- Left-aligned nav items -->
+          <ul class="nav navbar-nav menu_nav me-auto">
+            <li class="nav-item <?php echo isPageActive('index.php'); ?>"><a class="nav-link" href="index.php">Home</a></li>
+            <li class="nav-item <?php echo isPageActive('explore.php'); ?>"><a class="nav-link" href="explore.php">Explore Nueva Ecija</a></li>
+            <li class="nav-item <?php echo isPageActive('gallery.php'); ?>"><a class="nav-link" href="gallery.php">Gallery</a></li>
+            <li class="nav-item <?php echo isPageActive('gallery.php'); ?>"><a class="nav-link" href="userfeed.php">Newsfeed</a></li>
+            <li class="nav-item submenu dropdown <?php echo isDropdownActive(['userfeed.php', 'blog-details.html']); ?>">
+              <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">User Feed</a>
+              <ul class="dropdown-menu">
+                <li class="nav-item <?php echo isPageActive('userfeed.php'); ?>"><a class="nav-link" href="userfeed.php">Blogs</a></li>
+                <li class="nav-item <?php echo isPageActive('blog-details.html'); ?>"><a class="nav-link" href="blog-details.html">Picture</a></li>
+              </ul>
+            </li>
+            <li class="nav-item <?php echo isPageActive('contact.html'); ?>"><a class="nav-link" href="contact.html">Events</a></li>
+          </ul>
+
+          <!-- Right-aligned notification and profile items -->
+          <div class="d-flex align-items-center ms-auto">
+            <ul class="navbar-nav">
+              <?php if ($isLoggedIn): ?>
+                <!-- Notification Dropdown -->
+                <li class="nav-item dropdown">
+                  <a href="#" class="nav-link dropdown-toggle position-relative d-flex align-items-center" id="alertsDropdown" data-bs-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">
+                    <i class=" mt-2 fa fa-bell"></i>
+                    <?php if ($unreadNotifications > 0): ?>
+                      <span class="badge bg-danger rounded-circle position-absolute" style="top: -5px; right: -10px; font-size: 12px; padding: 4px 6px;"><?php echo $unreadNotifications; ?></span>
+                    <?php endif; ?>
+                  </a>
+                  <div class="dropdown-menu dropdown-menu-end dropdown-menu-md shadow-sm" aria-labelledby="alertsDropdown" style="min-width: 250px;">
+                    <div class="dropdown-header bg-light fw-bold py-1 px-2" style="font-size: 12px;">
+                      <?php echo $unreadNotifications > 0 ? "$unreadNotifications New Notifications" : "No New Notifications"; ?>
+                    </div>
+                    <div class="list-group list-group-flush">
+                      <?php while ($notification = mysqli_fetch_assoc($notificationsResult)): ?>
+                        <a href="#" class="list-group-item list-group-item-action py-2 px-2" style="font-size: 12px;">
+                          <div class="d-flex align-items-center">
+                            <div class="flex-shrink-0 me-2">
+                              <i class="fa fa-circle text-primary"></i>
+                            </div>
+                            <div class="flex-grow-1">
+                              <div class="text-dark fw-bold text-truncate"><?php echo htmlspecialchars($notification['message']); ?></div>
+                              <div class="text-muted small mt-1 text-truncate"><?php echo date('D, M jS Y, h:i A', strtotime($notification['created_at'])); ?></div>
+                            </div>
+                          </div>
+                        </a>
+                      <?php endwhile; ?>
+                    </div>
+                    <div class="dropdown-footer text-center bg-light py-2" style="font-size: 12px;">
+                      <a href="../addons/notification.php" class="text-muted">View all notifications</a>
+                    </div>
+                  </div>
+                </li>
+
+                <!-- Profile Dropdown -->
+                <li class="nav-item dropdown ms-3">
+                  <a href="#" class="nav-link dropdown-toggle d-flex align-items-center" data-bs-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">
+                    <?php echo htmlspecialchars($username); ?>
+                    <img src="<?php echo htmlspecialchars($profilePic); ?>" alt="Profile" class="rounded-circle ms-2" style="width: 30px; height: 30px;">
+                  </a>
+                  <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                    <li class="nav-item"><a class="dropdown-item" href="profile-user.php">My Profile</a></li>
+                    <li class="nav-item"><a class="dropdown-item" href="settings.php">Settings</a></li>
+                    <li class="nav-item"><a class="dropdown-item" href="myposts.php">My Posts</a></li>
+                    <li class="dropdown-divider"></li>
+                    <li class="nav-item"><a class="dropdown-item" href="Backend/logout.php">Logout</a></li>
+                  </ul>
+                </li>
+              <?php else: ?>
+                <!-- Account Dropdown -->
+                <li class="nav-item dropdown">
+                  <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">
+                    Account
+                  </a>
+                  <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                    <li class="nav-item"><a class="dropdown-item" href="Login.php">Log-in</a></li>
+                    <li class="nav-item"><a class="dropdown-item" href="Signup.php">Sign-up</a></li>
+                  </ul>
+                </li>
+              <?php endif; ?>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </nav>
+  </div>
+</header>
+
+
+<!-- Ensure FontAwesome is linked in your project -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
