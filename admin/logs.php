@@ -8,15 +8,73 @@ if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'superadmin') {
     exit();
 }
 
-// Fetch logs from the database
-function getLogs($conn) {
-    $query = "SELECT * FROM logs ORDER BY timestamp DESC"; // Fetch logs ordered by the latest activity
+// Variables for pagination
+$limit = 25; // Number of entries per page
+$page = isset($_GET['page']) ? $_GET['page'] : 1; // Current page number
+$offset = ($page - 1) * $limit; // Offset for query
+
+// Variables for filtering and searching
+$role_filter = isset($_GET['role']) ? $_GET['role'] : '';
+$search_term = isset($_GET['search']) ? $_GET['search'] : '';
+
+// Fetch logs from the database with pagination, filtering, and searching
+function getLogs($conn, $limit, $offset, $role_filter, $search_term) {
+    // Joining logs with users to get the role of each user
+    $query = "SELECT logs.*, users.role FROM logs 
+              LEFT JOIN users ON logs.user_id = users.user_id 
+              WHERE 1";
+
+    // Add role filter if set
+    if ($role_filter !== '') {
+        $query .= " AND users.role = '$role_filter'";
+    }
+
+    // Add search term filter if set
+    if ($search_term !== '') {
+        $query .= " AND logs.username LIKE '%$search_term%'";
+    }
+
+    // Order by latest activity and apply pagination
+    $query .= " ORDER BY logs.timestamp DESC LIMIT $limit OFFSET $offset";
+    
     return mysqli_query($conn, $query);
 }
 
+// Get total count for pagination and displaying the number of results
+function getTotalLogs($conn, $role_filter, $search_term) {
+    $query = "SELECT COUNT(*) AS total FROM logs 
+              LEFT JOIN users ON logs.user_id = users.user_id 
+              WHERE 1";
+
+    // Add role filter if set
+    if ($role_filter !== '') {
+        $query .= " AND users.role = '$role_filter'";
+    }
+
+    // Add search term filter if set
+    if ($search_term !== '') {
+        $query .= " AND logs.username LIKE '%$search_term%'";
+    }
+
+    $result = mysqli_query($conn, $query);
+    $row = mysqli_fetch_assoc($result);
+    return $row['total'];
+}
+
+// Get logs for the current page
+$logs = getLogs($conn, $limit, $offset, $role_filter, $search_term);
+
+// Get total logs for pagination calculation and for displaying the count
+$total_logs = getTotalLogs($conn, $role_filter, $search_term);
+$total_pages = ceil($total_logs / $limit);
+
+// Pagination window logic: display 5 pages at a time
+$pages_per_window = 5;
+$start_page = max(1, $page - ($page % $pages_per_window) + 1); // Start page of the window
+$end_page = min($total_pages, $start_page + $pages_per_window - 1); // End page of the window
+
 mysqli_close($conn);
 ?>
-
 
 <!DOCTYPE html>
 <html lang="en">
@@ -45,34 +103,106 @@ mysqli_close($conn);
                         <div class="card-header bg-primary text-white">
                             <h5 class="card-title mb-0 text-light">Activity Logs</h5>
                         </div>
-                        <div class="table-responsive">
-                            <table class="table table-striped table-hover table-bordered">
-                                <thead class="table-dark">
-                                    <tr>
-                                        <th>Log ID</th>
-                                        <th class="d-none d-xl-table-cell">User ID</th>
-                                        <th class="d-none d-md-table-cell">Username</th>
-                                        <th class="d-none d-md-table-cell">Action</th>
-                                        <th class="d-none d-md-table-cell">IP Address</th>
-                                        <th class="d-none d-md-table-cell">Timestamp</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <?php 
-                                        $logs = getLogs($conn);
-                                        while ($row = mysqli_fetch_assoc($logs)) {
-                                            echo "<tr>";
-                                            echo "<td>" . $row['id'] . "</td>"; 
-                                            echo "<td class='d-none d-xl-table-cell'>" . $row['user_id'] . "</td>";
-                                            echo "<td class='d-none d-md-table-cell'>" . $row['username'] . "</td>";
-                                            echo "<td class='d-none d-md-table-cell'>" . $row['action'] . "</td>";
-                                            echo "<td class='d-none d-md-table-cell'>" . $row['ip_address'] . "</td>";
-                                            echo "<td class='d-none d-md-table-cell'>" . $row['timestamp'] . "</td>";
-                                            echo "</tr>";
-                                        }
-                                    ?>
-                                </tbody>
-                            </table>
+                        <div class="card-body">
+                            <!-- Filter and Search Form -->
+                            <form method="GET" action="logs.php" class="mb-3">
+                                <div class="row">
+                                    <!-- Role Filter -->
+                                    <div class="col-md-4">
+                                        <select name="role" class="form-select">
+                                            <option value="">All Roles</option>
+                                            <option value="user" <?= $role_filter == 'user' ? 'selected' : '' ?>>User</option>
+                                            <option value="admin" <?= $role_filter == 'admin' ? 'selected' : '' ?>>Admin</option>
+                                            <option value="superadmin" <?= $role_filter == 'superadmin' ? 'selected' : '' ?>>Superadmin</option>
+                                        </select>
+                                    </div>
+                                    <!-- Search -->
+                                    <div class="col-md-4">
+                                        <input type="text" name="search" class="form-control" placeholder="Search by username" value="<?= $search_term ?>">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <button type="submit" class="btn btn-primary w-100">Filter & Search</button>
+                                    </div>
+                                </div>
+                            </form>
+
+                            <!-- Display the number of results found -->
+                            <div class="mb-2">
+                                <strong><?= $total_logs ?> logs found</strong> 
+                                <?php if ($search_term || $role_filter): ?>
+                                    (filtered by <?= $role_filter ? 'role: ' . $role_filter : '' ?><?= $search_term ? ($role_filter ? ' and ' : '') . 'search term: "' . $search_term . '"' : '' ?>)
+                                <?php endif; ?>
+                            </div>
+
+                            <!-- Logs Table -->
+                            <div class="table-responsive">
+                                <table class="table table-striped table-hover table-bordered">
+                                    <thead class="table-dark">
+                                        <tr>
+                                            <th>Log ID</th>
+                                            <th class="d-none d-xl-table-cell">User ID</th>
+                                            <th class="d-none d-md-table-cell">Username</th>
+                                            <th class="d-none d-md-table-cell">Action</th>
+                                            <th class="d-none d-md-table-cell">IP Address</th>
+                                            <th class="d-none d-md-table-cell">Timestamp</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <?php 
+                                            while ($row = mysqli_fetch_assoc($logs)) {
+                                                echo "<tr>";
+                                                echo "<td>" . $row['id'] . "</td>"; 
+                                                echo "<td class='d-none d-xl-table-cell'>" . $row['user_id'] . "</td>";
+                                                echo "<td class='d-none d-md-table-cell'>" . $row['username'] . "</td>";
+                                                echo "<td class='d-none d-md-table-cell'>" . $row['action'] . "</td>";
+                                                echo "<td class='d-none d-md-table-cell'>" . $row['ip_address'] . "</td>";
+                                                echo "<td class='d-none d-md-table-cell'>" . $row['timestamp'] . "</td>";
+                                                echo "</tr>";
+                                            }
+                                        ?>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <!-- Pagination Links -->
+                            <nav>
+                                <ul class="pagination justify-content-center">
+                                    <!-- Previous Button -->
+                                    <?php if ($page > 1): ?>
+                                        <li class="page-item">
+                                            <a class="page-link" href="?page=<?= $page - 1 ?>&role=<?= $role_filter ?>&search=<?= $search_term ?>">Previous</a>
+                                        </li>
+                                    <?php endif; ?>
+
+                                    <!-- Previous Set of Pages Button (shows only when there are previous sets) -->
+                                    <?php if ($start_page > 1): ?>
+                                        <li class="page-item">
+                                            <a class="page-link" href="?page=<?= $start_page - 1 ?>&role=<?= $role_filter ?>&search=<?= $search_term ?>">...</a>
+                                        </li>
+                                    <?php endif; ?>
+
+                                    <!-- Page Numbers -->
+                                    <?php for ($i = $start_page; $i <= $end_page; $i++): ?>
+                                        <li class="page-item <?= $page == $i ? 'active' : '' ?>">
+                                            <a class="page-link" href="?page=<?= $i ?>&role=<?= $role_filter ?>&search=<?= $search_term ?>"><?= $i ?></a>
+                                        </li>
+                                    <?php endfor; ?>
+
+                                    <!-- Next Set of Pages Button (shows only when there are more sets) -->
+                                    <?php if ($end_page < $total_pages): ?>
+                                        <li class="page-item">
+                                            <a class="page-link" href="?page=<?= $end_page + 1 ?>&role=<?= $role_filter ?>&search=<?= $search_term ?>">...</a>
+                                        </li>
+                                    <?php endif; ?>
+
+                                    <!-- Next Button -->
+                                    <?php if ($page < $total_pages): ?>
+                                        <li class="page-item">
+                                            <a class="page-link" href="?page=<?= $page + 1 ?>&role=<?= $role_filter ?>&search=<?= $search_term ?>">Next</a>
+                                        </li>
+                                    <?php endif; ?>
+                                </ul>
+                            </nav>
                         </div>
                     </div>
                 </div>

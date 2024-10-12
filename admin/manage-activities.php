@@ -1,130 +1,11 @@
-<?php
-session_start();
-include '../connection/connection.php';
-
-// Logging function to record activities in the logs table
-function logActivity($conn, $user_id, $username, $action) {
-    $ip_address = $_SERVER['REMOTE_ADDR']; // Get the user's IP address
-    $stmt = $conn->prepare("INSERT INTO logs (user_id, username, action, ip_address) VALUES (?, ?, ?, ?)");
-    $stmt->bind_param("isss", $user_id, $username, $action, $ip_address);
-    $stmt->execute();
-    $stmt->close();
-}
-
-// Check if the user is logged in and is a superadmin
-if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'superadmin') {
-    header('Location: ../Login.php');
-    exit();
-}
-
-// Handle form submission for adding a new activity
-if (isset($_POST['add_activity'])) {
-    $name = $_POST['name'];
-    $description = $_POST['description'];
-    $location = $_POST['location'];
-    $latitude = $_POST['latitude'];
-    $longitude = $_POST['longitude'];
-    $category_id = $_POST['category_id'];
-    $image_url = null;
-
-    // Check if an activity image was uploaded
-    if (isset($_FILES['image_url']) && $_FILES['image_url']['error'] == UPLOAD_ERR_OK) {
-        $image_name = $_FILES['image_url']['name'];
-        $image_tmp_name = $_FILES['image_url']['tmp_name'];
-        $upload_dir = '../assets/images/uploads/activities/';
-        $image_path = $upload_dir . basename($image_name);
-
-        // Move the uploaded file to the desired directory
-        if (move_uploaded_file($image_tmp_name, $image_path)) {
-            $image_url = basename($image_name); // Save only the image name
-        }
-    }
-
-    $stmt = $conn->prepare("INSERT INTO activities (name, description, location, latitude, longitude, category_id, image_url) VALUES (?, ?, ?, ?, ?, ?, ?)");
-    $stmt->bind_param("sssddis", $name, $description, $location, $latitude, $longitude, $category_id, $image_url);
-    if ($stmt->execute()) {
-        logActivity($conn, $_SESSION['user_id'], $_SESSION['Username'], "Added a new activity: $name");
-        $_SESSION['message'] = "Activity added successfully!";
-    } else {
-        $_SESSION['message'] = "Failed to add activity.";
-    }
-    header('Location: manage-activities.php');
-    exit();
-}
-
-// Handle form submission for editing an activity
-if (isset($_POST['edit_activity'])) {
-    $activity_id = $_POST['activity_id'];
-    $name = $_POST['name'];
-    $description = $_POST['description'];
-    $location = $_POST['location'];
-    $latitude = $_POST['latitude'];
-    $longitude = $_POST['longitude'];
-    $category_id = $_POST['category_id'];
-    $image_url = $_POST['existing_image'];
-
-    // Check if a new activity image was uploaded
-    if (isset($_FILES['image_url']) && $_FILES['image_url']['error'] == UPLOAD_ERR_OK) {
-        $image_name = $_FILES['image_url']['name'];
-        $image_tmp_name = $_FILES['image_url']['tmp_name'];
-        $upload_dir = '../assets/images/uploads/activities/';
-        $image_path = $upload_dir . basename($image_name);
-
-        // Move the uploaded file to the desired directory
-        if (move_uploaded_file($image_tmp_name, $image_path)) {
-            $image_url = basename($image_name); // Save only the image name
-        }
-    }
-
-    $stmt = $conn->prepare("UPDATE activities SET name = ?, description = ?, location = ?, latitude = ?, longitude = ?, category_id = ?, image_url = ? WHERE activity_id = ?");
-    $stmt->bind_param("sssddisi", $name, $description, $location, $latitude, $longitude, $category_id, $image_url, $activity_id);
-    if ($stmt->execute()) {
-        logActivity($conn, $_SESSION['user_id'], $_SESSION['Username'], "Edited activity: $name");
-        $_SESSION['message'] = "Activity updated successfully!";
-    } else {
-        $_SESSION['message'] = "Failed to update activity.";
-    }
-    header('Location: manage-activities.php');
-    exit();
-}
-
-// Handle deletion of an activity
-if (isset($_POST['delete_activity'])) {
-    $activity_id = intval($_POST['activity_id']);
-    $query = "DELETE FROM activities WHERE activity_id = ?";
-    $stmt = $conn->prepare($query);
-    $stmt->bind_param('i', $activity_id);
-    if ($stmt->execute()) {
-        logActivity($conn, $_SESSION['user_id'], $_SESSION['Username'], "Deleted activity ID $activity_id successfully.");
-        $_SESSION['message'] = "Activity deleted successfully!";
-    } else {
-        logActivity($conn, $_SESSION['user_id'], $_SESSION['Username'], "Failed to delete activity ID $activity_id.");
-        $_SESSION['message'] = "Failed to delete the activity.";
-    }
-    header('Location: manage-activities.php');
-    exit();
-}
-
-// Fetch activities for the management table
-$activities = [];
-$sql = "SELECT activities.*, categories.name AS category_name FROM activities LEFT JOIN categories ON activities.category_id = categories.category_id";
-$result = $conn->query($sql);
-if ($result) {
-    $activities = $result->fetch_all(MYSQLI_ASSOC);
-}
-
-// Fetch categories for the dropdown in the activities form and for listing
-$categories = [];
-$sql = "SELECT * FROM categories";
-$result = $conn->query($sql);
-if ($result) {
-    $categories = $result->fetch_all(MYSQLI_ASSOC);
-}
-
+<?php 
+include 'includes/ActivitiesBackend.php';
 ?>
+
 
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -164,6 +45,7 @@ if ($result) {
         }
     </style>
 </head>
+
 <body>
     <div class="wrapper">
         <?php include("includes/adminsidebar.php"); ?>
@@ -194,9 +76,7 @@ if ($result) {
                                             <input type="text" class="form-control" id="location_search" name="location" required>
                                             <div id="suggestions" class="suggestions-box"></div>
                                         </div>
-                                        <!-- Map for selecting location -->
                                         <div id="map"></div>
-                                        <!-- Latitude and Longitude inputs -->
                                         <div class="mb-3">
                                             <label for="latitude" class="form-label">Latitude</label>
                                             <input type="text" class="form-control" id="latitude" name="latitude" readonly>
@@ -230,6 +110,33 @@ if ($result) {
 
                             <!-- Manage Existing Activities -->
                             <hr>
+                            <!-- Filter and Search Form -->
+                            <form method="GET" action="manage-activities.php" class="row g-3 mb-3">
+                                <div class="col-md-6">
+                                    <input type="text" name="search" class="form-control" placeholder="Search by name or location" value="<?= htmlspecialchars($search_term) ?>">
+                                </div>
+                                <div class="col-md-4">
+                                    <select name="category" class="form-select">
+                                        <option value="">All Categories</option>
+                                        <?php foreach ($categories as $category): ?>
+                                            <option value="<?= $category['category_id'] ?>" <?= $category_filter == $category['category_id'] ? 'selected' : '' ?>>
+                                                <?= htmlspecialchars($category['name']) ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </div>
+                                <div class="col-md-2">
+                                    <button type="submit" class="btn btn-primary w-100">Search</button>
+                                </div>
+                            </form>
+
+                             <div class="mb-2">
+                                <strong><?= $total_activities ?> activities found</strong>
+                                <?php if ($search_term || $category_filter): ?>
+                                    (filtered by <?= $category_filter ? 'category: ' . $category_filter : '' ?><?= $search_term ? ($category_filter ? ' and ' : '') . 'search: "' . $search_term . '"' : '' ?>)
+                                <?php endif; ?>
+                            </div>
+
                             <h5 class="mt-4">Existing Activities</h5>
                             <?php if (isset($_SESSION['message'])): ?>
                                 <div class="alert alert-info">
@@ -266,7 +173,6 @@ if ($result) {
                                                 </form>
                                             </td>
                                         </tr>
-
                                         <!-- Edit Activity Modal -->
                                         <div class="modal fade" id="editActivityModal<?php echo $activity['activity_id']; ?>" tabindex="-1" aria-labelledby="editActivityModalLabel" aria-hidden="true">
                                             <div class="modal-dialog modal-lg">
@@ -328,7 +234,6 @@ if ($result) {
                                                 </div>
                                             </div>
                                         </div>
-
                                     <?php endforeach; ?>
                                 </tbody>
                             </table>
@@ -337,13 +242,38 @@ if ($result) {
                                 <p>No activities found.</p>
                             <?php endif; ?>
 
+                            <!-- Pagination Controls -->
+                            <nav>
+                                <ul class="pagination justify-content-center">
+                                    <!-- Previous Button -->
+                                    <?php if ($page > 1): ?>
+                                        <li class="page-item">
+                                            <a class="page-link" href="?page=<?= $page - 1 ?>&search=<?= $search_term ?>&category=<?= $category_filter ?>">Previous</a>
+                                        </li>
+                                    <?php endif; ?>
+
+                                    <!-- Page Numbers -->
+                                    <?php for ($i = 1; $i <= $total_pages; $i++): ?>
+                                        <li class="page-item <?= $page == $i ? 'active' : '' ?>">
+                                            <a class="page-link" href="?page=<?= $i ?>&search=<?= $search_term ?>&category=<?= $category_filter ?>"><?= $i ?></a>
+                                        </li>
+                                    <?php endfor; ?>
+
+                                    <!-- Next Button -->
+                                    <?php if ($page < $total_pages): ?>
+                                        <li class="page-item">
+                                            <a class="page-link" href="?page=<?= $page + 1 ?>&search=<?= $search_term ?>&category=<?= $category_filter ?>">Next</a>
+                                        </li>
+                                    <?php endif; ?>
+                                </ul>
+                            </nav>
                         </div>
                     </div>
-
                 </div>
             </main>
         </div>
     </div>
+
     <script src="js/app.js"></script>
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet-geosearch/dist/geosearch.umd.js"></script>
@@ -438,84 +368,85 @@ if ($result) {
 
         // Repeat the map initialization for each edit activity modal
         <?php foreach ($activities as $activity): ?>
-        document.addEventListener('DOMContentLoaded', function() {
-            var mapEdit<?php echo $activity['activity_id']; ?> = L.map('map_<?php echo $activity['activity_id']; ?>').setView([<?php echo $activity['latitude']; ?>, <?php echo $activity['longitude']; ?>], 10);
+            document.addEventListener('DOMContentLoaded', function() {
+                var mapEdit<?php echo $activity['activity_id']; ?> = L.map('map_<?php echo $activity['activity_id']; ?>').setView([<?php echo $activity['latitude']; ?>, <?php echo $activity['longitude']; ?>], 10);
 
-            // Add OpenStreetMap tiles
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                maxZoom: 18,
-                attribution: '© OpenStreetMap contributors'
-            }).addTo(mapEdit<?php echo $activity['activity_id']; ?>);
+                // Add OpenStreetMap tiles
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    maxZoom: 18,
+                    attribution: '© OpenStreetMap contributors'
+                }).addTo(mapEdit<?php echo $activity['activity_id']; ?>);
 
-            // Add a draggable marker to the map
-            var markerEdit<?php echo $activity['activity_id']; ?> = L.marker([<?php echo $activity['latitude']; ?>, <?php echo $activity['longitude']; ?>], {
-                draggable: true
-            }).addTo(mapEdit<?php echo $activity['activity_id']; ?>);
+                // Add a draggable marker to the map
+                var markerEdit<?php echo $activity['activity_id']; ?> = L.marker([<?php echo $activity['latitude']; ?>, <?php echo $activity['longitude']; ?>], {
+                    draggable: true
+                }).addTo(mapEdit<?php echo $activity['activity_id']; ?>);
 
-            // Event listener to update the form inputs with the marker's current location
-            markerEdit<?php echo $activity['activity_id']; ?>.on('dragend', function(e) {
-                var lat = markerEdit<?php echo $activity['activity_id']; ?>.getLatLng().lat;
-                var lng = markerEdit<?php echo $activity['activity_id']; ?>.getLatLng().lng;
-                document.getElementById('latitude_<?php echo $activity['activity_id']; ?>').value = lat;
-                document.getElementById('longitude_<?php echo $activity['activity_id']; ?>').value = lng;
-            });
+                // Event listener to update the form inputs with the marker's current location
+                markerEdit<?php echo $activity['activity_id']; ?>.on('dragend', function(e) {
+                    var lat = markerEdit<?php echo $activity['activity_id']; ?>.getLatLng().lat;
+                    var lng = markerEdit<?php echo $activity['activity_id']; ?>.getLatLng().lng;
+                    document.getElementById('latitude_<?php echo $activity['activity_id']; ?>').value = lat;
+                    document.getElementById('longitude_<?php echo $activity['activity_id']; ?>').value = lng;
+                });
 
-            // Set up the geosearch provider for the edit modal
-            const providerEdit<?php echo $activity['activity_id']; ?> = new window.GeoSearch.OpenStreetMapProvider();
+                // Set up the geosearch provider for the edit modal
+                const providerEdit<?php echo $activity['activity_id']; ?> = new window.GeoSearch.OpenStreetMapProvider();
 
-            // Listen for input in the search box in the edit modal
-            let searchTimeoutEdit<?php echo $activity['activity_id']; ?>;
-            document.getElementById('location_search_<?php echo $activity['activity_id']; ?>').addEventListener('input', function(e) {
-                const query = e.target.value;
-                const suggestionsBoxEdit<?php echo $activity['activity_id']; ?> = document.getElementById('suggestions_<?php echo $activity['activity_id']; ?>');
+                // Listen for input in the search box in the edit modal
+                let searchTimeoutEdit<?php echo $activity['activity_id']; ?>;
+                document.getElementById('location_search_<?php echo $activity['activity_id']; ?>').addEventListener('input', function(e) {
+                    const query = e.target.value;
+                    const suggestionsBoxEdit<?php echo $activity['activity_id']; ?> = document.getElementById('suggestions_<?php echo $activity['activity_id']; ?>');
 
-                // Delay the search to avoid too many API calls
-                clearTimeout(searchTimeoutEdit<?php echo $activity['activity_id']; ?>);
-                searchTimeoutEdit<?php echo $activity['activity_id']; ?> = setTimeout(async function() {
-                    if (query.length > 2) { // Start searching after the user has typed 3 characters
-                        const results = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${query}`)
-                            .then(response => response.json());
+                    // Delay the search to avoid too many API calls
+                    clearTimeout(searchTimeoutEdit<?php echo $activity['activity_id']; ?>);
+                    searchTimeoutEdit<?php echo $activity['activity_id']; ?> = setTimeout(async function() {
+                        if (query.length > 2) { // Start searching after the user has typed 3 characters
+                            const results = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${query}`)
+                                .then(response => response.json());
 
-                        suggestionsBoxEdit<?php echo $activity['activity_id']; ?>.innerHTML = ''; // Clear previous suggestions
+                            suggestionsBoxEdit<?php echo $activity['activity_id']; ?>.innerHTML = ''; // Clear previous suggestions
 
-                        if (results && results.length > 0) {
-                            results.forEach(result => {
-                                const suggestionItemEdit = document.createElement('div');
-                                suggestionItemEdit.textContent = result.display_name;
-                                suggestionItemEdit.addEventListener('click', function() {
-                                    // Update marker position and map view
-                                    const lat = result.lat;
-                                    const lng = result.lon;
-                                    markerEdit<?php echo $activity['activity_id']; ?>.setLatLng([lat, lng]);
-                                    mapEdit<?php echo $activity['activity_id']; ?>.setView([lat, lng], 15);
+                            if (results && results.length > 0) {
+                                results.forEach(result => {
+                                    const suggestionItemEdit = document.createElement('div');
+                                    suggestionItemEdit.textContent = result.display_name;
+                                    suggestionItemEdit.addEventListener('click', function() {
+                                        // Update marker position and map view
+                                        const lat = result.lat;
+                                        const lng = result.lon;
+                                        markerEdit<?php echo $activity['activity_id']; ?>.setLatLng([lat, lng]);
+                                        mapEdit<?php echo $activity['activity_id']; ?>.setView([lat, lng], 15);
 
-                                    // Update form inputs
-                                    document.getElementById('latitude_<?php echo $activity['activity_id']; ?>').value = lat;
-                                    document.getElementById('longitude_<?php echo $activity['activity_id']; ?>').value = lng;
+                                        // Update form inputs
+                                        document.getElementById('latitude_<?php echo $activity['activity_id']; ?>').value = lat;
+                                        document.getElementById('longitude_<?php echo $activity['activity_id']; ?>').value = lng;
 
-                                    // Set the location search box value
-                                    document.getElementById('location_search_<?php echo $activity['activity_id']; ?>').value = result.display_name;
+                                        // Set the location search box value
+                                        document.getElementById('location_search_<?php echo $activity['activity_id']; ?>').value = result.display_name;
 
-                                    // Clear suggestions
-                                    suggestionsBoxEdit<?php echo $activity['activity_id']; ?>.innerHTML = '';
+                                        // Clear suggestions
+                                        suggestionsBoxEdit<?php echo $activity['activity_id']; ?>.innerHTML = '';
+                                    });
+                                    suggestionsBoxEdit<?php echo $activity['activity_id']; ?>.appendChild(suggestionItemEdit);
                                 });
-                                suggestionsBoxEdit<?php echo $activity['activity_id']; ?>.appendChild(suggestionItemEdit);
-                            });
+                            }
+                        } else {
+                            suggestionsBoxEdit<?php echo $activity['activity_id']; ?>.innerHTML = ''; // Clear suggestions if query is too short
                         }
-                    } else {
-                        suggestionsBoxEdit<?php echo $activity['activity_id']; ?>.innerHTML = ''; // Clear suggestions if query is too short
-                    }
-                }, 300); // 300ms delay for search
-            });
+                    }, 300); // 300ms delay for search
+                });
 
-            // Hide suggestions box when clicking outside
-            document.addEventListener('click', function(e) {
-                if (!document.getElementById('location_search_<?php echo $activity['activity_id']; ?>').contains(e.target)) {
-                    document.getElementById('suggestions_<?php echo $activity['activity_id']; ?>').innerHTML = '';
-                }
+                // Hide suggestions box when clicking outside
+                document.addEventListener('click', function(e) {
+                    if (!document.getElementById('location_search_<?php echo $activity['activity_id']; ?>').contains(e.target)) {
+                        document.getElementById('suggestions_<?php echo $activity['activity_id']; ?>').innerHTML = '';
+                    }
+                });
             });
-        });
         <?php endforeach; ?>
     </script>
 </body>
+
 </html>

@@ -82,7 +82,7 @@ if (isset($_GET['toggle_top_place']) && $_SESSION['role'] === 'superadmin') {
 
     if ($stmt->execute()) {
         $action = $new_status ? "Marked as Top Place" : "Removed from Top Places";
-        logActivity($conn, $_SESSION['user_id'], $_SESSION['Username'], "$action for Place ID $place_id.");
+        logActivity($conn, $_SESSION['user_id'], $_SESSION['username'], "$action for Place ID $place_id.");
         $message = "Place successfully updated.";
     } else {
         $message = "Failed to update the place.";
@@ -102,12 +102,12 @@ if (isset($_POST['delete_place'])) {
         $stmt = $conn->prepare($query);
         $stmt->bind_param('i', $place_id);
         if ($stmt->execute()) {
-            logActivity($conn, $_SESSION['user_id'], $_SESSION['Username'], "Deleted Place ID $place_id successfully.");
+            logActivity($conn, $_SESSION['user_id'], $_SESSION['username'], "Deleted Place ID $place_id successfully.");
             $message = "Place deleted successfully!";
             header('Location: manage_place.php'); // Refresh the page after deletion
             exit();
         } else {
-            logActivity($conn, $_SESSION['user_id'], $_SESSION['Username'], "Failed to delete Place ID $place_id.");
+            logActivity($conn, $_SESSION['user_id'], $_SESSION['username'], "Failed to delete Place ID $place_id.");
             $message = "Failed to delete the place.";
         }
     } else {

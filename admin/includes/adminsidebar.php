@@ -63,13 +63,6 @@ $role = $_SESSION['role'];
                     </a>
                 </li>
 
-                <li class="sidebar-item <?php echo isPageActive('manage-activities.php'); ?>">
-                    <a class="sidebar-link" href="manage-activities.php">
-                        <i class="align-middle" data-feather="activity"></i>
-                        <span class="align-middle">Activities</span>
-                    </a>
-                </li>
-
                 
 
                 <li class="sidebar-item <?php echo isPageActive(['Manage_gallery.php', 'admin-gallery.php']); ?>">
@@ -173,11 +166,26 @@ $role = $_SESSION['role'];
                     </ul>
                 </li>
 
+
+                <li class="sidebar-item <?php echo isPageActive('manage-activities.php'); ?>">
+                    <a class="sidebar-link" href="manage-activities.php">
+                        <i class="align-middle" data-feather="activity"></i>
+                        <span class="align-middle">Activities</span>
+                    </a>
+                </li>
+
+                <li class="sidebar-item <?php echo isPageActive('manage_categories.php'); ?>">
+                    <a class="sidebar-link" href="manage_categories.php">
+                        <i class="align-middle" data-feather="activity"></i>
+                        <span class="align-middle">Activity Category</span>
+                    </a>
+                </li>
+
                 <!-- Dropdown for Posts Section -->
                 <li class="sidebar-item <?php echo isPageActive(['Manage-posts.php', 'Logs-approved-reject-post.php']); ?>">
                     <a class="sidebar-link dropdown-toggle" href="#postsDropdown" data-bs-toggle="collapse" aria-expanded="<?php echo isPageActive(['Manage-posts.php', 'Logs-approved-reject-post.php']) ? 'true' : 'false'; ?>" aria-controls="postsDropdown">
                         <i class="align-middle" data-feather="file-text"></i>
-                        <span class="align-middle">Posts</span>
+                        <span class="align-middle">Newsfeed</span>
                     </a>
                     <ul class="collapse list-unstyled <?php echo isPageActive(['Manage-posts.php', 'Logs-approved-reject-post.php']) ? 'show' : ''; ?>" id="postsDropdown">
                         <li class="sidebar-item <?php echo isPageActive('Manage-posts.php'); ?>">

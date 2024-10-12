@@ -355,8 +355,11 @@ if ($result) {
                                             <td><?php echo htmlspecialchars($place['PlaceLocation']); ?></td>
                                             <td class="d-none d-md-table-cell"><?php echo htmlspecialchars($place['MuniName']); ?></td>
                                             <td class="d-none d-md-table-cell">
-                                                <a href="#" class="btn btn-primary btn-sm me-2">Edit</a>
-                                                <a href="#" class="btn btn-danger btn-sm">Delete</a>
+                                                <a href="controller/edit_place.php?Place_ID=<?php echo $place['Place_ID']; ?>" class="btn btn-primary btn-sm me-2">Edit</a>
+                                                <form action="manage_place.php" method="POST" style="display:inline;">
+                                                            <input type="hidden" name="place_id" value="<?php echo $place['Place_ID']; ?>">
+                                                            <button type="submit" name="delete_place" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure you want to delete this place?');">Delete</button>
+                                                        </form>
                                             </td>
                                         </tr>
                                     <?php endforeach; ?>
@@ -393,7 +396,7 @@ if ($result) {
                                             <td><?php echo htmlspecialchars($blog['views']); ?></td>
                                             <td class="d-none d-md-table-cell"><?php echo htmlspecialchars($blog['created_at']); ?></td>
                                             <td class="d-none d-md-table-cell">
-                                                <a href="#" class="btn btn-info btn-sm me-2">Edit</a>
+                                                <a href="" class="btn btn-info btn-sm me-2">Edit</a>
                                                 <a href="#" class="btn btn-danger btn-sm">Delete</a>
                                             </td>
                                         </tr>
