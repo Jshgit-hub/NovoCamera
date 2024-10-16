@@ -74,23 +74,26 @@ $stmt->close();
 $sql_count_places_images = "SELECT COUNT(*) AS total_images FROM places WHERE PlacePicture IS NOT NULL";
 $result_count_places = $conn->query($sql_count_places_images);
 $total_places_images = $result_count_places->fetch_assoc()['total_images'];
-$total_pages_places = ceil($total_places_images / $items_per_page_places); // Total number of pages for places
+$total_pages_places = ceil($total_places_images / $items_per_page_places);
 
 // Set pagination values for posts
 $items_per_page_posts = 10;
 $page_posts = isset($_GET['page_posts']) ? (int)$_GET['page_posts'] : 1;
 $offset_posts = ($page_posts - 1) * $items_per_page_posts;
-
-// Fetch images from the post table with pagination
 $post_images = [];
-$sql_post_images = "SELECT post_id AS Image_ID, image_url AS ImagePath, title AS PlaceName FROM post WHERE image_url IS NOT NULL LIMIT ? OFFSET ?";
+$sql_post_images = "SELECT post.post_id AS Image_ID, post.image_url AS ImagePath, post.title AS PlaceName, users.username FROM post JOIN users ON post.user_id = users.user_id WHERE post.image_url IS NOT NULL LIMIT ? OFFSET ?";
 $stmt = $conn->prepare($sql_post_images);
 $stmt->bind_param("ii", $items_per_page_posts, $offset_posts);
 $stmt->execute();
 $result_post_images = $stmt->get_result();
 if ($result_post_images && $result_post_images->num_rows > 0) {
     while ($row = $result_post_images->fetch_assoc()) {
-        $row['ImagePath'] = "../uploads/" . basename($row['ImagePath']);
+        $image_url = $row['ImagePath'];
+        if (strpos($image_url, '../assets/images/userUpload/') !== false) {
+            $row['ImagePath'] = $image_url;
+        } else {
+            $row['ImagePath'] = "../uploads/" . basename($image_url);
+        }
         $post_images[] = $row;
     }
 }
@@ -100,7 +103,7 @@ $stmt->close();
 $sql_count_post_images = "SELECT COUNT(*) AS total_images FROM post WHERE image_url IS NOT NULL";
 $result_count_posts = $conn->query($sql_count_post_images);
 $total_post_images = $result_count_posts->fetch_assoc()['total_images'];
-$total_pages_posts = ceil($total_post_images / $items_per_page_posts); // Total number of pages for posts
+$total_pages_posts = ceil($total_post_images / $items_per_page_posts);
 
 // Determine which images to display based on the filter
 $filter = isset($_GET['filter']) ? $_GET['filter'] : 'places';
@@ -142,26 +145,6 @@ $images = ($filter === 'posts') ? $post_images : $places_images;
             margin-top: 20px;
         }
 
-        .suggestions-box {
-            border: 1px solid #ccc;
-            border-top: none;
-            max-height: 200px;
-            overflow-y: auto;
-            background-color: #fff;
-            position: absolute;
-            width: 100%;
-            z-index: 1000;
-        }
-
-        .suggestions-box div {
-            padding: 8px;
-            cursor: pointer;
-        }
-
-        .suggestions-box div:hover {
-            background-color: #f0f0f0;
-        }
-
         .pagination {
             display: flex;
             justify-content: center;
@@ -200,15 +183,13 @@ $images = ($filter === 'posts') ? $post_images : $places_images;
 
             <?php if (isset($_SESSION['success'])): ?>
                 <div class="alert alert-success">
-                    <?php echo $_SESSION['success'];
-                    unset($_SESSION['success']); ?>
+                    <?php echo $_SESSION['success']; unset($_SESSION['success']); ?>
                 </div>
             <?php endif; ?>
 
             <?php if (isset($_SESSION['error'])): ?>
                 <div class="alert alert-danger">
-                    <?php echo $_SESSION['error'];
-                    unset($_SESSION['error']); ?>
+                    <?php echo $_SESSION['error']; unset($_SESSION['error']); ?>
                 </div>
             <?php endif; ?>
 
@@ -234,10 +215,14 @@ $images = ($filter === 'posts') ? $post_images : $places_images;
                                                     <img src="<?php echo htmlspecialchars($image['ImagePath']); ?>" class="card-img-top" alt="...">
                                                     <div class="card-body">
                                                         <p class="card-text">Title: <?php echo htmlspecialchars($image['PlaceName'] ?? ''); ?></p>
-                                                        <div class="form-check">
-                                                            <input class="form-check-input existing-image-checkbox" type="checkbox" value="<?php echo $image['ImagePath']; ?>" name="selected_images[]">
-                                                            <label class="form-check-label">Select for Gallery</label>
-                                                        </div>
+
+                                                        <?php if ($filter === 'places'): ?>
+                                                            <p class="card-text">Place ID: <?php echo htmlspecialchars($image['Place_ID']); ?></p>
+                                                            <input type="radio" class="form-check-input" name="selected_image" value="place-<?php echo $image['Place_ID']; ?>" required>
+                                                        <?php elseif ($filter === 'posts'): ?>
+                                                            <p class="card-text">Uploader: <?php echo htmlspecialchars($image['username']); ?></p>
+                                                            <input type="radio" class="form-check-input" name="selected_image" value="post-<?php echo $image['Image_ID']; ?>-user-<?php echo $image['username']; ?>" required>
+                                                        <?php endif; ?>
                                                     </div>
                                                 </div>
                                             </div>
@@ -245,17 +230,15 @@ $images = ($filter === 'posts') ? $post_images : $places_images;
                                     </div>
                                 </div>
 
-                                <!-- Pagination for Places or Posts (above the form) -->
+                                <!-- Pagination for Places or Posts -->
                                 <?php if ($filter === 'places'): ?>
                                     <div class="pagination">
                                         <?php if ($page_places > 1): ?>
                                             <a href="?filter=places&page_places=<?php echo $page_places - 1; ?>">&laquo; Previous</a>
                                         <?php endif; ?>
-
                                         <?php for ($i = 1; $i <= $total_pages_places; $i++): ?>
                                             <a href="?filter=places&page_places=<?php echo $i; ?>" class="<?php echo ($i == $page_places) ? 'active' : ''; ?>"><?php echo $i; ?></a>
                                         <?php endfor; ?>
-
                                         <?php if ($page_places < $total_pages_places): ?>
                                             <a href="?filter=places&page_places=<?php echo $page_places + 1; ?>">Next &raquo;</a>
                                         <?php endif; ?>
@@ -265,11 +248,9 @@ $images = ($filter === 'posts') ? $post_images : $places_images;
                                         <?php if ($page_posts > 1): ?>
                                             <a href="?filter=posts&page_posts=<?php echo $page_posts - 1; ?>">&laquo; Previous</a>
                                         <?php endif; ?>
-
                                         <?php for ($i = 1; $i <= $total_pages_posts; $i++): ?>
                                             <a href="?filter=posts&page_posts=<?php echo $i; ?>" class="<?php echo ($i == $page_posts) ? 'active' : ''; ?>"><?php echo $i; ?></a>
                                         <?php endfor; ?>
-
                                         <?php if ($page_posts < $total_pages_posts): ?>
                                             <a href="?filter=posts&page_posts=<?php echo $page_posts + 1; ?>">Next &raquo;</a>
                                         <?php endif; ?>
@@ -399,8 +380,8 @@ $images = ($filter === 'posts') ? $post_images : $places_images;
             const existingImageCheckboxes = document.querySelectorAll('.existing-image-checkbox');
             const galleryImageInput = document.getElementById('GalleryImage');
 
-            existingImageCheckboxes.forEach(function(checkbox) {
-                checkbox.addEventListener('change', function() {
+            existingImageCheckboxes.forEach(function (checkbox) {
+                checkbox.addEventListener('change', function () {
                     if (Array.from(existingImageCheckboxes).some(cb => cb.checked)) {
                         galleryImageInput.disabled = true;
                         galleryImageInput.required = false;

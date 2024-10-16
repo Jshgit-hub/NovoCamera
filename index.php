@@ -58,8 +58,8 @@
             }
 
             /* Hover effect for cards with cinematic feel */
-            .card:hover,
-            .main-blog-card:hover {
+            .card:hover
+             {
                 transform: scale(1.1) rotate(0.5deg);
                 box-shadow: 0 6px 30px rgba(0, 0, 0, 0.3);
             }

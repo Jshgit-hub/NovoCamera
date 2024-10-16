@@ -16,6 +16,7 @@ if (isset($_SESSION['status'])) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet"> <!-- Bootstrap Icons -->
 </head>
 
 <body style="background-color: #ececec; font-family: 'Poppins', sans-serif;">
@@ -29,8 +30,9 @@ if (isset($_SESSION['status'])) {
                 <div class="mb-3">
                     <input type="text" class="form-control form-control-lg bg-light fs-6" name="username" placeholder="Username" required style="border-radius: 10px;">
                 </div>
-                <div class="mb-1">
-                    <input type="password" class="form-control form-control-lg bg-light fs-6" name="password" placeholder="Password" required style="border-radius: 10px;">
+                <div class="mb-3 position-relative">
+                    <input type="password" class="form-control form-control-lg bg-light fs-6" name="password" id="password" placeholder="Password" required style="border-radius: 10px;">
+                    <i class="bi bi-eye-slash-fill position-absolute top-50 end-0 translate-middle-y pe-3" id="togglePassword" style="cursor: pointer;"></i> <!-- Eye Icon -->
                 </div>
                 <div class="forgot-password" style="text-align: right; margin-top: 10px; margin-bottom: 1rem;">
                     <a href="forgot_password.php" style="color: #379777; text-decoration: none;">Forgot Password?</a>
@@ -44,6 +46,22 @@ if (isset($_SESSION['status'])) {
             </form>
         </div>
     </div>
+
+    <!-- JavaScript for toggling the password visibility -->
+    <script>
+        const togglePassword = document.getElementById('togglePassword');
+        const password = document.getElementById('password');
+
+        togglePassword.addEventListener('click', function (e) {
+            // Toggle the type attribute of the password input field
+            const type = password.getAttribute('type') === 'password' ? 'text' : 'password';
+            password.setAttribute('type', type);
+
+            // Toggle the eye/eye-slash icon
+            this.classList.toggle('bi-eye');
+            this.classList.toggle('bi-eye-slash-fill');
+        });
+    </script>
 </body>
 
 </html>
