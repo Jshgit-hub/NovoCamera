@@ -121,6 +121,7 @@ $images = ($filter === 'posts') ? $post_images : $places_images;
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-geosearch/dist/geosearch.umd.js"></script>
 
     <link href="css/app.css" rel="stylesheet">
     <style>
@@ -166,6 +167,25 @@ $images = ($filter === 'posts') ? $post_images : $places_images;
 
         .pagination a:hover {
             background-color: #ddd;
+        }
+
+        .suggestions-box {
+            border: 1px solid #ccc;
+            max-height: 200px;
+            overflow-y: auto;
+            background-color: #fff;
+            position: absolute;
+            width: 100%;
+            z-index: 1000;
+        }
+
+        .suggestions-box div {
+            padding: 8px;
+            cursor: pointer;
+        }
+
+        .suggestions-box div:hover {
+            background-color: #f0f0f0;
         }
     </style>
 </head>
@@ -218,10 +238,10 @@ $images = ($filter === 'posts') ? $post_images : $places_images;
 
                                                         <?php if ($filter === 'places'): ?>
                                                             <p class="card-text">Place ID: <?php echo htmlspecialchars($image['Place_ID']); ?></p>
-                                                            <input type="radio" class="form-check-input" name="selected_image" value="place-<?php echo $image['Place_ID']; ?>" required>
+                                                            <input type="radio" class="form-check-input existing-image-checkbox" name="selected_image" value="place-<?php echo $image['Place_ID']; ?>" required>
                                                         <?php elseif ($filter === 'posts'): ?>
                                                             <p class="card-text">Uploader: <?php echo htmlspecialchars($image['username']); ?></p>
-                                                            <input type="radio" class="form-check-input" name="selected_image" value="post-<?php echo $image['Image_ID']; ?>-user-<?php echo $image['username']; ?>" required>
+                                                            <input type="radio" class="form-check-input existing-image-checkbox" name="selected_image" value="post-<?php echo $image['Image_ID']; ?>-user-<?php echo $image['username']; ?>" required>
                                                         <?php endif; ?>
                                                     </div>
                                                 </div>
@@ -229,33 +249,6 @@ $images = ($filter === 'posts') ? $post_images : $places_images;
                                         <?php endforeach; ?>
                                     </div>
                                 </div>
-
-                                <!-- Pagination for Places or Posts -->
-                                <?php if ($filter === 'places'): ?>
-                                    <div class="pagination">
-                                        <?php if ($page_places > 1): ?>
-                                            <a href="?filter=places&page_places=<?php echo $page_places - 1; ?>">&laquo; Previous</a>
-                                        <?php endif; ?>
-                                        <?php for ($i = 1; $i <= $total_pages_places; $i++): ?>
-                                            <a href="?filter=places&page_places=<?php echo $i; ?>" class="<?php echo ($i == $page_places) ? 'active' : ''; ?>"><?php echo $i; ?></a>
-                                        <?php endfor; ?>
-                                        <?php if ($page_places < $total_pages_places): ?>
-                                            <a href="?filter=places&page_places=<?php echo $page_places + 1; ?>">Next &raquo;</a>
-                                        <?php endif; ?>
-                                    </div>
-                                <?php elseif ($filter === 'posts'): ?>
-                                    <div class="pagination">
-                                        <?php if ($page_posts > 1): ?>
-                                            <a href="?filter=posts&page_posts=<?php echo $page_posts - 1; ?>">&laquo; Previous</a>
-                                        <?php endif; ?>
-                                        <?php for ($i = 1; $i <= $total_pages_posts; $i++): ?>
-                                            <a href="?filter=posts&page_posts=<?php echo $i; ?>" class="<?php echo ($i == $page_posts) ? 'active' : ''; ?>"><?php echo $i; ?></a>
-                                        <?php endfor; ?>
-                                        <?php if ($page_posts < $total_pages_posts): ?>
-                                            <a href="?filter=posts&page_posts=<?php echo $page_posts + 1; ?>">Next &raquo;</a>
-                                        <?php endif; ?>
-                                    </div>
-                                <?php endif; ?>
 
                                 <h5>Add New Image</h5>
                                 <div class="mb-3">
@@ -311,64 +304,43 @@ $images = ($filter === 'posts') ? $post_images : $places_images;
         </div>
     </div>
 
-    <script src="js/app.js"></script>
-    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
-    <script src="https://unpkg.com/leaflet-geosearch/dist/geosearch.umd.js"></script>
     <script>
-        // Initialize the map
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             var map = L.map('map').setView([15.5, 120.5], 10);
 
-            // Add OpenStreetMap tiles
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 maxZoom: 18,
                 attribution: '© OpenStreetMap contributors'
             }).addTo(map);
 
-            // Add a marker that the user can drag to select the location
-            var marker = L.marker([15.5, 120.5], {
-                draggable: true
-            }).addTo(map);
+            var marker = L.marker([15.5, 120.5], { draggable: true }).addTo(map);
 
-            // Update latitude and longitude inputs when the marker is dragged
-            marker.on('dragend', function(e) {
+            marker.on('dragend', function (e) {
                 var lat = marker.getLatLng().lat;
                 var lng = marker.getLatLng().lng;
                 document.getElementById('latitude').value = lat;
                 document.getElementById('longitude').value = lng;
             });
 
-            // Set up the geosearch provider for location suggestions
             const provider = new window.GeoSearch.OpenStreetMapProvider();
 
-            // Handle search input and display suggestions
             document.getElementById('location_search').addEventListener('input', function(e) {
                 const query = e.target.value;
                 const suggestionsBox = document.getElementById('suggestions');
+                suggestionsBox.innerHTML = '';
 
-                // Fetch suggestions for the location search
-                provider.search({
-                    query: query
-                }).then(function(results) {
-                    suggestionsBox.innerHTML = ''; // Clear previous suggestions
-
+                provider.search({ query }).then(function (results) {
                     results.forEach(result => {
                         const suggestionItem = document.createElement('div');
                         suggestionItem.textContent = result.label;
-                        suggestionItem.addEventListener('click', function() {
+                        suggestionItem.addEventListener('click', function () {
                             const lat = result.y;
                             const lng = result.x;
-
-                            // Move the marker to the selected location
                             marker.setLatLng([lat, lng]);
                             map.setView([lat, lng], 15);
-
-                            // Update the input fields with the selected coordinates
                             document.getElementById('latitude').value = lat;
                             document.getElementById('longitude').value = lng;
                             document.getElementById('location_search').value = result.label;
-
-                            // Clear the suggestions box
                             suggestionsBox.innerHTML = '';
                         });
                         suggestionsBox.appendChild(suggestionItem);
@@ -376,7 +348,6 @@ $images = ($filter === 'posts') ? $post_images : $places_images;
                 });
             });
 
-            // Disable/enable the image upload field based on the selection of existing images
             const existingImageCheckboxes = document.querySelectorAll('.existing-image-checkbox');
             const galleryImageInput = document.getElementById('GalleryImage');
 
@@ -393,6 +364,7 @@ $images = ($filter === 'posts') ? $post_images : $places_images;
             });
         });
     </script>
+        <script src="js/app.js"></script>
 </body>
 
 </html>

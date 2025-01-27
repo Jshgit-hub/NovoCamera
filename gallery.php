@@ -6,22 +6,9 @@ include 'connection/connection.php';
 // Check if the connection is successful
 if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
-    
 }
 
- 
-$isLoggedIn = isset($_SESSION['username']); 
-
-// Fetch place types from the database
-$sql_place_types = "SELECT PlaceType, Icon FROM place_types";
-$result_place_types = $conn->query($sql_place_types);
-
-$place_types = [];
-if ($result_place_types && $result_place_types->num_rows > 0) {
-    while ($row = $result_place_types->fetch_assoc()) {
-        $place_types[] = $row;
-    }
-}
+$isLoggedIn = isset($_SESSION['username']);
 
 // Fetch municipality names for the dropdown, ordered alphabetically
 $sql_municipalities = "SELECT Muni_ID, MuniName FROM municipalities ORDER BY MuniName ASC";
@@ -33,8 +20,6 @@ if ($result_municipalities && $result_municipalities->num_rows > 0) {
         $municipalities[] = $row;
     }
 }
-
-
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -42,74 +27,60 @@ if ($result_municipalities && $result_municipalities->num_rows > 0) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Interactive Gallery</title>
+    <title>Interactive Tourism Gallery</title>
     <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link rel="stylesheet" href="css/style-2.css">
     <style>
         body {
             font-family: 'Poppins', sans-serif;
-            background-color: #f8f9fa;
+            background-color: #F5F7F8;
             overflow-x: hidden;
         }
 
         .filter-card {
             margin-bottom: 20px;
-        }
-
-        .filter-item {
-            cursor: pointer;
-            transition: transform 0.4s, background-color 0.4s;
-            display: flex;
-            align-items: center;
-            padding: 10px;
-            border-radius: 20px;
-            background-color: #ffffff;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-            margin-right: 10px;
-            transition: background-color 0.3s ease, transform 0.3s ease;
-        }
-
-        .filter-item:hover,
-        .filter-item.active {
-            transform: scale(1.1);
-            background-color: #28a745;
-            color: #fff;
-        }
-
-        .filter-item img {
-            width: 20px;
-            height: 20px;
-            margin-right: 8px;
+            border-radius: 15px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            background-color: #fff;
+            padding: 20px;
         }
 
         .filter-row {
             display: flex;
-            align-items: center;
+            flex-wrap: wrap;
             justify-content: space-between;
         }
 
-        .filter-row .form-select {
-            margin-right: 10px;
-            width: 300px;
+        .filter-row .form-select,
+        .filter-row input {
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            width: 48%;
         }
 
-        /* Spinner */
-        #loading-spinner {
-            display: none;
-            text-align: center;
+        .filter-btn {
+            background-color: #379777;
+            color: #fff;
+            border-radius: 30px;
+            padding: 12px 25px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            border: none;
+            margin-top: 15px;
         }
 
-        .spinner-border {
-            color: #28a745;
+        .filter-btn:hover {
+            background-color: #2e8061;
+            transform: scale(1.05);
         }
 
-        /* Gallery items */
         .gallery-item {
             margin-bottom: 20px;
-            opacity: 0;
-            transform: scale(0.9);
             transition: opacity 0.3s ease, transform 0.3s ease;
         }
 
@@ -118,14 +89,19 @@ if ($result_municipalities && $result_municipalities->num_rows > 0) {
             transform: scale(1);
         }
 
+        .gallery-item:hover {
+            transform: scale(1.05);
+        }
+
         .card {
             border-radius: 15px;
             overflow: hidden;
-            transition: transform 0.5s, box-shadow 0.5s;
+            transition: transform 0.5s ease, box-shadow 0.5s ease;
+            cursor: pointer;
+            position: relative;
         }
 
         .card:hover {
-            transform: scale(1.05);
             box-shadow: 0 6px 25px rgba(0, 0, 0, 0.2);
         }
 
@@ -163,31 +139,61 @@ if ($result_municipalities && $result_municipalities->num_rows > 0) {
             opacity: 1;
         }
 
-        .location-link {
-            color: #FFD700;
+        .view-content-btn {
+            margin-top: 10px;
+            background-color: #379777;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 5px;
             text-decoration: none;
         }
 
-        .location-link:hover {
-            text-decoration: underline;
+        .view-content-btn:hover {
+            background-color: #2e8061;
         }
 
         .pagination {
             justify-content: center;
+            margin-top: 20px;
         }
 
         .pagination .page-item .page-link {
             border: none;
+            background-color: #379777;
+            color: white;
+            margin: 0 5px;
+            border-radius: 25px;
         }
 
         .pagination .page-item.active .page-link {
-            background-color: #28a745;
+            background-color: #45474B;
             color: white;
         }
 
         .pagination .page-item .page-link:hover {
-            background-color: #218838;
+            background-color: #2e8061;
             color: white;
+        }
+
+        /* Responsive for Mobile */
+        @media (max-width: 768px) {
+            .filter-row {
+                flex-direction: column;
+            }
+
+            .filter-btn {
+                width: 100%;
+                margin-top: 10px;
+            }
+
+            .card-img-top {
+                height: 200px;
+            }
+
+            .card {
+                margin-bottom: 20px;
+            }
         }
     </style>
 </head>
@@ -200,29 +206,17 @@ if ($result_municipalities && $result_municipalities->num_rows > 0) {
         </div>
     </header>
 
-
     <main class="container mt-4">
         <!-- Filter Card -->
         <div class="filter-card card p-4 mb-4">
             <div class="card-body">
-                <h5 class="card-title">Filter Options</h5>
+                <h5 class="card-title text-success fs-2">Find Your Destination</h5>
 
-                <!-- Place Type Filter Row -->
-                <div class="place-type-filter mb-3 d-flex">
-                    <div class="filter-item active" data-category="all">All</div>
-                    <?php foreach ($place_types as $type): ?>
-                        <div class="filter-item rounded-pill shadow-sm mx-2 p-2 text-center" data-category="<?php echo htmlspecialchars($type['PlaceType']); ?>">
-                            <img src="<?php echo 'assets/images/icon/' . htmlspecialchars($type['Icon']); ?>" alt="<?php echo htmlspecialchars($type['PlaceType']); ?>">
-                            <?php echo htmlspecialchars($type['PlaceType']); ?>
-                        </div>
-                    <?php endforeach; ?>
-                </div>
-
-                <!-- Municipality Dropdown and Search Input (Same Row) -->
+                <!-- Filter Row: Municipality, Date Range, Year, and Sort by Date -->
                 <div class="filter-row">
                     <!-- Municipality Dropdown -->
-                    <select id="municipality" class="form-select">
-                        <option value="all">Select Municipality</option>
+                    <select id="municipality" class="form-select text-success ">
+                        <option value="all">All Municipalities</option>
                         <?php foreach ($municipalities as $municipality): ?>
                             <option value="<?php echo htmlspecialchars($municipality['Muni_ID']); ?>">
                                 <?php echo htmlspecialchars($municipality['MuniName']); ?>
@@ -230,9 +224,29 @@ if ($result_municipalities && $result_municipalities->num_rows > 0) {
                         <?php endforeach; ?>
                     </select>
 
-                    <!-- Search Input -->
-                    <input type="text" id="search" class="form-control" placeholder="Search by title..." style="flex-grow: 1;">
+                    <!-- Year Filter -->
+                    <select id="year-filter" class="form-select">
+                        <option value="all">All Years</option>
+                        <?php
+                        $currentYear = date("Y");
+                        for ($year = 2024; $year <= $currentYear + 10; $year++) {  // Show future years
+                            echo "<option value='{$year}'>{$year}</option>";
+                        }
+                        ?>
+                    </select>
+
+                    <!-- Date Range Filter -->
+                    <div class="input-group pt-3" style="width: 48%;">
+                        <span class="input-group-text">From</span>
+                        <input type="date" id="start-date" class="form-control" min="2024-01-01">
+                        <span class="input-group-text">To</span>
+                        <input type="date" id="end-date" class="form-control" min="2024-01-01">
+                    </div>
                 </div>
+
+                <button class="filter-btn" id="apply-filter">
+                    <i class="fas fa-filter"></i> Apply Filters
+                </button>
             </div>
         </div>
 
@@ -249,43 +263,52 @@ if ($result_municipalities && $result_municipalities->num_rows > 0) {
         <nav aria-label="Page navigation">
             <ul class="pagination" id="pagination"></ul>
         </nav>
+
+        <!-- Modal for Image View -->
+        <div class="modal fade" id="imageModal" tabindex="-1" aria-labelledby="imageModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="imageModalLabel">Image View</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <img id="modalImage" src="" class="img-fluid w-100" alt="Fullscreen Image">
+                    </div>
+                </div>
+            </div>
+        </div>
     </main>
 
     <?php include 'includes/footer.php' ?>
 
     <!-- Bootstrap 5 JS and dependencies -->
     <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/main.js"></script>
+    <script src="vendors/bootstrap/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.7/dist/umd/popper.min.js"></script>
     <script>
         let currentPage = 1;
         const itemsPerPage = 20;
-        const searchInput = document.getElementById('search');
         const municipalitySelect = document.getElementById('municipality');
-        const placeTypeFilters = document.querySelectorAll('.filter-item');
-        let currentPlaceType = 'all';
-        let currentMunicipality = 'all';
+        const startDateInput = document.getElementById('start-date');
+        const endDateInput = document.getElementById('end-date');
+        const yearSelect = document.getElementById('year-filter');
+        const sortDate = document.getElementById('sort-date');
+        const sortOrderText = document.getElementById('sort-order');
+        let sortOrder = 'DESC'; // Default sorting order (newest)
 
-        // Add click event listeners for place type filters
-        placeTypeFilters.forEach(filter => {
-            filter.addEventListener('click', () => {
-                // Set active class
-                placeTypeFilters.forEach(f => f.classList.remove('active'));
-                filter.classList.add('active');
+        const gallery = document.getElementById('gallery');
 
-                currentPlaceType = filter.getAttribute('data-category');
-                fetchPlaces();
-            });
-        });
+        // Load content immediately when the page is first loaded
+        document.addEventListener('DOMContentLoaded', fetchPlaces);
 
-        // Add change event listener for the municipality dropdown
-        municipalitySelect.addEventListener('change', () => {
-            currentMunicipality = municipalitySelect.value;
-            fetchPlaces();
-        });
-
-        // Add instant search functionality
-        searchInput.addEventListener('input', () => {
-            fetchPlaces();
-        });
+        // Add event listeners for filters and sorting
+        municipalitySelect.addEventListener('change', fetchPlaces);
+        startDateInput.addEventListener('change', fetchPlaces);
+        endDateInput.addEventListener('change', fetchPlaces);
+        yearSelect.addEventListener('change', fetchPlaces);
 
         // Fetch places with AJAX
         function fetchPlaces() {
@@ -296,9 +319,11 @@ if ($result_municipalities && $result_municipalities->num_rows > 0) {
                 url: 'ajax_content/load_gallery.php',
                 method: 'GET',
                 data: {
-                    place_type: currentPlaceType,
-                    municipality: currentMunicipality,
-                    search: searchInput.value
+                    municipality: municipalitySelect.value,
+                    start_date: startDateInput.value,
+                    end_date: endDateInput.value,
+                    year: yearSelect.value,
+                    sort_order: sortOrder
                 },
                 dataType: 'json',
                 success: function(data) {
@@ -314,21 +339,31 @@ if ($result_municipalities && $result_municipalities->num_rows > 0) {
             });
         }
 
-        // Display gallery cards with fade-in effect
+        // Display gallery cards with content links or no content message
         function displayGallery(items) {
-            const gallery = document.getElementById('gallery');
             gallery.innerHTML = ''; // Clear existing gallery
+
+            if (items.length === 0) {
+                gallery.innerHTML = '<p class="text-center text-muted">No results found.</p>';
+                return;
+            }
 
             items.forEach(item => {
                 const yearCreated = new Date(item.created_at).getFullYear();
+                const viewContentButton = item.Place_ID ?
+                    `<a href="place-details.php?Place_ID=${item.Place_ID}" class="view-content-btn">View Content</a>` :
+                    item.post_id ?
+                    `<a href="user-post-details.php?post_id=${item.post_id}" class="view-content-btn">View Post</a>` :
+                    ''; // No content button if neither is present
+
                 const galleryCard = `
-                    <div class="col-md-4 gallery-item show">
-                        <div class="card">
+                    <div class="col-lg-4 col-md-6 col-sm-12 gallery-item show">
+                        <div class="card" data-bs-toggle="modal" data-bs-target="#imageModal" data-image="assets/images/gallery/${item.image_path}">
                             <img src="assets/images/gallery/${item.image_path}" class="card-img-top" alt="${item.title}">
                             <div class="overlay">
                                 <h5>${item.title}</h5>
                                 <p>${item.MuniName} - ${yearCreated}</p>
-                                <a href="https://www.google.com/maps/search/?api=1&query=${item.latitude},${item.longitude}" target="_blank" class="location-link">Get Directions</a>
+                                ${viewContentButton}
                             </div>
                         </div>
                     </div>`;
@@ -342,15 +377,18 @@ if ($result_municipalities && $result_municipalities->num_rows > 0) {
                     });
                 }, 100);
             });
+
+            // Event listener to open the modal with the image
+            $('#imageModal').on('show.bs.modal', function(event) {
+                const card = $(event.relatedTarget); // Get the clicked card
+                const imageUrl = card.data('image'); // Extract the image URL
+                $('#modalImage').attr('src', imageUrl); // Set the image in the modal
+            });
         }
 
         // Initial load
         fetchPlaces();
     </script>
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
-    <script src="js/main.js"></script>
 </body>
 
 </html>

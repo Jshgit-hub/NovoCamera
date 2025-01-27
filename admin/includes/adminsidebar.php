@@ -1,6 +1,7 @@
-<?php 
+<?php
 // Function to check if a given sidebar item should be marked as active
-function isPageActive($pageNames) {
+function isPageActive($pageNames)
+{
     // Get the current page URL
     $currentPage = basename($_SERVER['PHP_SELF']);
     // Check if the current page matches any of the given sidebar items
@@ -8,7 +9,7 @@ function isPageActive($pageNames) {
 }
 
 // Get the user's role from the session
-$role = $_SESSION['role']; 
+$role = $_SESSION['role'];
 ?>
 
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -30,7 +31,7 @@ $role = $_SESSION['role'];
                     </a>
                 </li>
 
-                <li class="sidebar-item <?php echo isPageActive(['cms_intro_about.php', 'cms_services.php']); ?>">
+                <li class="sidebar-item <?php echo isPageActive(['cms_intro_about.php', 'cms_services.php', 'cms-logo.php']); ?>">
                     <a class="sidebar-link dropdown-toggle" href="#manageContentDropdown" data-bs-toggle="collapse" aria-expanded="<?php echo isPageActive(['cms_intro_about.php', 'cms_services.php']) ? 'true' : 'false'; ?>" aria-controls="manageContentDropdown">
                         <i class="align-middle" data-feather="edit"></i>
                         <span class="align-middle">Content Management</span>
@@ -41,6 +42,13 @@ $role = $_SESSION['role'];
                                 <i class="align-middle" data-feather="file-text"></i> Introduction/About us
                             </a>
                         </li>
+
+                        <li class="sidebar-item <?php echo isPageActive('cms-logo.php'); ?>">
+                            <a class="sidebar-link" href="cms-logo.php">
+                                <i class="align-middle" data-feather="briefcase"></i> logo
+                            </a>
+                        </li>
+
                         <li class="sidebar-item <?php echo isPageActive('cms_services.php'); ?>">
                             <a class="sidebar-link" href="cms_services.php">
                                 <i class="align-middle" data-feather="briefcase"></i> Services
@@ -63,7 +71,7 @@ $role = $_SESSION['role'];
                     </a>
                 </li>
 
-                
+
 
                 <li class="sidebar-item <?php echo isPageActive(['Manage_gallery.php', 'admin-gallery.php']); ?>">
                     <a class="sidebar-link dropdown-toggle" href="#galleryDropdown" data-bs-toggle="collapse" aria-expanded="<?php echo isPageActive(['Manage_gallery.php', 'admin-gallery.php']) ? 'true' : 'false'; ?>" aria-controls="galleryDropdown">
@@ -148,11 +156,7 @@ $role = $_SESSION['role'];
                         <span class="align-middle">Blogs</span>
                     </a>
                     <ul class="collapse list-unstyled <?php echo isPageActive(['manage_blogs.php', 'create_blog.php', 'add_blog_type.php']) ? 'show' : ''; ?>" id="blogsDropdown">
-                        <li class="sidebar-item <?php echo isPageActive('manage_blogs.php'); ?>">
-                            <a class="sidebar-link" href="manage_blogs.php">
-                                <i class="align-middle" data-feather="file-text"></i> Manage Blogs
-                            </a>
-                        </li>
+
                         <li class="sidebar-item <?php echo isPageActive('create_blog.php'); ?>">
                             <a class="sidebar-link" href="create_blog.php">
                                 <i class="align-middle" data-feather="file-plus"></i> Create blogs
@@ -161,6 +165,12 @@ $role = $_SESSION['role'];
                         <li class="sidebar-item <?php echo isPageActive('add_blog_type.php'); ?>">
                             <a class="sidebar-link" href="add_blog_type.php">
                                 <i class="align-middle" data-feather="check-square"></i> Add Blog type
+                            </a>
+                        </li>
+
+                        <li class="sidebar-item <?php echo isPageActive('manage_blogs.php'); ?>">
+                            <a class="sidebar-link" href="manage_blogs.php">
+                                <i class="align-middle" data-feather="file-text"></i> Manage Blogs
                             </a>
                         </li>
                     </ul>
@@ -208,21 +218,25 @@ $role = $_SESSION['role'];
                         <span class="align-middle">Places</span>
                     </a>
                     <ul class="collapse list-unstyled <?php echo isPageActive(['manage_place.php', 'add_place.php', 'insert_place_type.php']) ? 'show' : ''; ?>" id="placesDropdown">
-                        <li class="sidebar-item <?php echo isPageActive('manage_place.php'); ?>">
-                            <a class="sidebar-link" href="manage_place.php">
-                                <i class="align-middle" data-feather="map-pin"></i> Manage Places
-                            </a>
-                        </li>
-                        <li class="sidebar-item <?php echo isPageActive('add_place.php'); ?>">
+                        
+                    <li class="sidebar-item <?php echo isPageActive('add_place.php'); ?>">
                             <a class="sidebar-link" href="add_place.php">
                                 <i class="align-middle" data-feather="plus-circle"></i> Add Place
                             </a>
                         </li>
+                        
                         <li class="sidebar-item <?php echo isPageActive('insert_place_type.php'); ?>">
                             <a class="sidebar-link" href="insert_place_type.php">
                                 <i class="align-middle" data-feather="tag"></i> Add Place Type
                             </a>
                         </li>
+
+                        <li class="sidebar-item <?php echo isPageActive('manage_place.php'); ?>">
+                            <a class="sidebar-link" href="manage_place.php">
+                                <i class="align-middle" data-feather="map-pin"></i> Manage Places
+                            </a>
+                        </li>
+
                     </ul>
                 </li>
             <?php endif; ?>

@@ -36,7 +36,7 @@ if (isset($_POST['submit'])) {
         $municipality = $conn->real_escape_string($_POST['municipality']);
     }
 
-    $imagePath = '';
+    $imageFileName = ''; // To store the image file name
 
     // Handle existing selected images
     if (isset($_POST['selected_image']) && !empty($_POST['selected_image'])) {
@@ -52,13 +52,35 @@ if (isset($_POST['submit'])) {
             $result = $stmt->get_result();
             if ($result->num_rows > 0) {
                 $row = $result->fetch_assoc();
-                $imagePath = "../assets/images/ad-places/" . basename($row['ImagePath']);
+                $sourcePath = "../../assets/images/ad-places/" . basename($row['ImagePath']);
+                $imageFileName = basename($row['ImagePath']); // Store only the image file name
+
+                // Move the image to the gallery directory
+                $targetDir = realpath('../../assets/images/gallery/') . '/';
+                $targetFile = $targetDir . $imageFileName;
+                if (!is_dir($targetDir)) {
+                    mkdir($targetDir, 0755, true);
+                }
+
+                // Debugging: Check if source file exists
+                if (!file_exists($sourcePath)) {
+                    $_SESSION['error'] = "Source file does not exist: " . $sourcePath;
+                    header('Location: ../admin-gallery.php');
+                    exit();
+                }
+
+                // Debugging: Try to copy the file and log errors
+                if (!copy($sourcePath, $targetFile)) {
+                    $_SESSION['error'] = "Failed to copy the image. Check file permissions. Source: $sourcePath, Target: $targetFile";
+                    header('Location: ../admin-gallery.php');
+                    exit();
+                }
             }
             $stmt->close();
 
             // Insert the image details into the gallery_images table, including Place_ID
             $sql = "INSERT INTO gallery_images (title, image_path, latitude, longitude, Muni_ID, place_type, Place_ID) 
-                    VALUES ('$imageTitle', '$imagePath', '$latitude', '$longitude', '$municipality', '$place_type', '$place_id')";
+                    VALUES ('$imageTitle', '$imageFileName', '$latitude', '$longitude', '$municipality', '$place_type', '$place_id')";
         } elseif (strpos($selectedImage, 'post-') !== false) {
             // It's a post image, so extract the Post_ID and username
             preg_match('/post-(\d+)-user-(.+)/', $selectedImage, $matches);
@@ -72,13 +94,35 @@ if (isset($_POST['submit'])) {
             $result = $stmt->get_result();
             if ($result->num_rows > 0) {
                 $row = $result->fetch_assoc();
-                $imagePath = "../uploads/" . basename($row['ImagePath']);
+                $sourcePath = "../../assets/images/userUpload/" . basename($row['ImagePath']);
+                $imageFileName = basename($row['ImagePath']); // Store only the image file name
+
+                // Move the image to the gallery directory
+                $targetDir = realpath('../../assets/images/gallery/') . '/';
+                $targetFile = $targetDir . $imageFileName;
+                if (!is_dir($targetDir)) {
+                    mkdir($targetDir, 0755, true);
+                }
+
+                // Debugging: Check if source file exists
+                if (!file_exists($sourcePath)) {
+                    $_SESSION['error'] = "Source file does not exist: " . $sourcePath;
+                    header('Location: ../admin-gallery.php');
+                    exit();
+                }
+
+                // Debugging: Try to copy the file and log errors
+                if (!copy($sourcePath, $targetFile)) {
+                    $_SESSION['error'] = "Failed to copy the image. Check file permissions. Source: $sourcePath, Target: $targetFile";
+                    header('Location: ../admin-gallery.php');
+                    exit();
+                }
             }
             $stmt->close();
 
             // Insert the image details into the gallery_images table, including Post_ID
             $sql = "INSERT INTO gallery_images (title, image_path, latitude, longitude, Muni_ID, place_type, post_id, username) 
-                    VALUES ('$imageTitle', '$imagePath', '$latitude', '$longitude', '$municipality', '$place_type', '$post_id', '$username')";
+                    VALUES ('$imageTitle', '$imageFileName', '$latitude', '$longitude', '$municipality', '$place_type', '$post_id', '$username')";
         }
 
         if ($conn->query($sql) === TRUE) {
@@ -90,8 +134,8 @@ if (isset($_POST['submit'])) {
         // Handle the image upload if no existing image was selected
         $targetDir = realpath('../../assets/images/gallery/') . '/';
         $imageFileType = strtolower(pathinfo($_FILES["GalleryImage"]["name"], PATHINFO_EXTENSION));
-        $newFileName = uniqid() . '.' . $imageFileType; // Generate a unique file name
-        $targetFile = $targetDir . $newFileName;
+        $imageFileName = uniqid() . '.' . $imageFileType; // Generate a unique file name
+        $targetFile = $targetDir . $imageFileName;
 
         // Check if the uploaded file is an actual image
         $check = getimagesize($_FILES["GalleryImage"]["tmp_name"]);
@@ -118,11 +162,9 @@ if (isset($_POST['submit'])) {
 
         // Try to upload the file
         if (move_uploaded_file($_FILES["GalleryImage"]["tmp_name"], $targetFile)) {
-            $imagePath = $newFileName;
-
             // Insert the image details into the gallery_images table
             $sql = "INSERT INTO gallery_images (title, image_path, latitude, longitude, Muni_ID, place_type) 
-                    VALUES ('$imageTitle', '$imagePath', '$latitude', '$longitude', '$municipality', '$place_type')";
+                    VALUES ('$imageTitle', '$imageFileName', '$latitude', '$longitude', '$municipality', '$place_type')";
             if ($conn->query($sql) === TRUE) {
                 $_SESSION['success'] = "Image added successfully.";
             } else {

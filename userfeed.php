@@ -348,156 +348,159 @@ if ($isLoggedIn) {
         <?php endif; ?>
 
     </div>
-    <?php if ($isLoggedIn): ?>  
-    <div class="container-fluid">
-        <div class="main-content">
-            <!-- Sidebar -->
-            <aside class="sidebar">
-                <!-- Profile Box -->
-                <div class="profile-box">
-                    <img src="<?php echo htmlspecialchars($profilePicture); ?>" alt="User Avatar" style="width: 60px; height: 60px; border-radius: 50%; object-fit: cover; margin-bottom: 10px;">
-                    <div>
-                        <h5><?php echo $isLoggedIn ? htmlspecialchars($_SESSION['username']) : 'Guest'; ?></h5>
-                        <?php if ($isLoggedIn): ?>
-                            <small>@<?php echo htmlspecialchars($_SESSION['username']); ?></small>
-                        <?php endif; ?>
-                    </div>
-                </div>
-            </aside>
-
-
-            <!-- Main Content / Feed -->
-            <div class="feed">
-                <!-- Profile Box -->
-
-
-                <!-- Share Post -->
-                <?php if ($isLoggedIn && $_SESSION['role'] !== 'admin' && $_SESSION['role'] !== 'superadmin'): ?>
-                    <div class="action-buttons mb-3">
-                        <!-- Create Blog Button (only visible for non-admin and non-superadmin) -->
-                        <a href="create_blog_form.php" class="btn btn-primary w-100 mb-2">
-                            <i class="fas fa-plus"></i> Create Blog
+    <?php if ($isLoggedIn): ?>
+        <div class="container-fluid">
+            <div class="main-content">
+                <!-- Sidebar -->
+                <aside class="sidebar">
+                    <!-- Profile Box -->
+                    <div class="profile-box">
+                        <a href="profile-user.php" style="text-decoration: none; color: inherit;">
+                            <img src="<?php echo htmlspecialchars($profilePicture); ?>" alt="User Avatar" style="width: 60px; height: 60px; border-radius: 50%; object-fit: cover; margin-bottom: 10px;">
+                            <div>
+                                <h5><?php echo $isLoggedIn ? htmlspecialchars($_SESSION['username']) : 'Guest'; ?></h5>
+                                <?php if ($isLoggedIn): ?>
+                                    <small>@<?php echo htmlspecialchars($_SESSION['username']); ?></small>
+                                <?php endif; ?>
+                            </div>
                         </a>
-                        <!-- Share Post Button -->
-                        <button type="button" class="btn btn-success w-100" data-bs-toggle="modal" data-bs-target="#postModal">
-                            <i class="fas fa-edit"></i> Share Post
-                        </button>
                     </div>
-                <?php elseif ($isLoggedIn && ($_SESSION['role'] === 'admin' || $_SESSION['role'] === 'superadmin')): ?>
-                    <div class="action-buttons mb-3">
-                        <!-- Share Post Button (admins and superadmins can only share posts) -->
-                        <button type="button" class="btn btn-success w-100" data-bs-toggle="modal" data-bs-target="#postModal">
-                            <i class="fas fa-edit"></i> Share Post
-                        </button>
+
+                </aside>
+
+
+                <!-- Main Content / Feed -->
+                <div class="feed">
+                    <!-- Profile Box -->
+
+
+                    <!-- Share Post -->
+                    <?php if ($isLoggedIn && $_SESSION['role'] !== 'admin' && $_SESSION['role'] !== 'superadmin'): ?>
+                        <div class="action-buttons mb-3">
+                            <!-- Create Blog Button (only visible for non-admin and non-superadmin) -->
+                            <a href="create_blog_form.php" class="btn btn-primary w-100 mb-2">
+                                <i class="fas fa-plus"></i> Create Blog
+                            </a>
+                            <!-- Share Post Button -->
+                            <button type="button" class="btn btn-success w-100" data-bs-toggle="modal" data-bs-target="#postModal">
+                                <i class="fas fa-edit"></i> Share Post
+                            </button>
+                        </div>
+                    <?php elseif ($isLoggedIn && ($_SESSION['role'] === 'admin' || $_SESSION['role'] === 'superadmin')): ?>
+                        <div class="action-buttons mb-3">
+                            <!-- Share Post Button (admins and superadmins can only share posts) -->
+                            <button type="button" class="btn btn-success w-100" data-bs-toggle="modal" data-bs-target="#postModal">
+                                <i class="fas fa-edit"></i> Share Post
+                            </button>
+                        </div>
+                    <?php endif; ?>
+
+
+
+
+                    <!-- User Posts -->
+                    <div id="userPosts">
+                        <!-- Post Card -->
                     </div>
-                <?php endif; ?>
 
-
-
-
-                <!-- User Posts -->
-                <div id="userPosts">
-                    <!-- Post Card -->
-                </div>
-
-                <!-- No More Posts Message -->
-                <div id="noMorePosts" class="no-more-posts">
-                    No more posts to load.
+                    <!-- No More Posts Message -->
+                    <div id="noMorePosts" class="no-more-posts">
+                        No more posts to load.
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
 
 
-    <!-- Custom Tutorial Modals -->
-    <!-- Dimmed Background -->
-    <div id="dimmedBackground" class="dimmed-background" style="display:none;"></div>
+        <!-- Custom Tutorial Modals -->
+        <!-- Dimmed Background -->
+        <div id="dimmedBackground" class="dimmed-background" style="display:none;"></div>
 
-    <!-- Custom Tutorial Modals -->
-    <div id="tutorialStep1" class="tutorial-modal" style="display:none;">
-        <p>Welcome! Let’s start by learning how to create a post.</p>
-        <button class="tutorial-btn" id="nextStep1">Next</button>
-    </div>
-
-    <div id="tutorialStep2" class="tutorial-modal" style="display:none;">
-        <p>Click the <strong>"Share Post"</strong> button to create a new post!</p>
-        <button class="tutorial-btn" id="nextStep2">Next</button>
-    </div>
-
-    <?php if ($_SESSION['role'] !== 'admin' && $_SESSION['role'] !== 'superadmin'): ?>
-        <div id="tutorialStep3" class="tutorial-modal" style="display:none;">
-            <p>To create a blog, use the <strong>"Create Blog"</strong> button!</p>
-            <button class="tutorial-btn" id="finishTutorial">Finish</button>
+        <!-- Custom Tutorial Modals -->
+        <div id="tutorialStep1" class="tutorial-modal" style="display:none;">
+            <p>Welcome! Let’s start by learning how to create a post.</p>
+            <button class="tutorial-btn" id="nextStep1">Next</button>
         </div>
-    <?php endif; ?>
+
+        <div id="tutorialStep2" class="tutorial-modal" style="display:none;">
+            <p>Click the <strong>"Share Post"</strong> button to create a new post!</p>
+            <button class="tutorial-btn" id="nextStep2">Next</button>
+        </div>
+
+        <?php if ($_SESSION['role'] !== 'admin' && $_SESSION['role'] !== 'superadmin'): ?>
+            <div id="tutorialStep3" class="tutorial-modal" style="display:none;">
+                <p>To create a blog, use the <strong>"Create Blog"</strong> button!</p>
+                <button class="tutorial-btn" id="finishTutorial">Finish</button>
+            </div>
+        <?php endif; ?>
 
 
-    <!-- Modal for Creating a Post -->
-    <div class="modal fade" id="postModal" tabindex="-1" aria-labelledby="postModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-lg">
-            <div class="modal-content" style="border-radius: 10px; overflow: hidden; font-family: 'Lora', serif;">
-                <div class="modal-header" style="background-color: #2d6a4f; color: white; border-bottom: none;">
-                    <h5 class="modal-title mx-auto" id="postModalLabel" style="font-weight: 600;">Create a Post</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body p-4" style="background-color: #f8f9fa;">
-                    <form id="createPostForm" action="Backend/add-post-user-config.php" method="POST" enctype="multipart/form-data">
-                        <div class="mb-3">
-                            <label for="postImage" class="form-label">Upload Image</label>
-                            <input type="file" class="form-control" id="postImage" name="postImage" accept="image/*" onchange="previewImage(event)">
-                            <img id="imagePreview" class="img-fluid mt-3" style="display: none; border-radius: 5px;">
-                        </div>
-                        <div class="mb-3">
-                            <label for="postTitle" class="form-label">Post Title</label>
-                            <input type="text" class="form-control" id="postTitle" name="postTitle" placeholder="Enter the title of your post">
-                        </div>
+        <!-- Modal for Creating a Post -->
+        <div class="modal fade" id="postModal" tabindex="-1" aria-labelledby="postModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered modal-lg">
+                <div class="modal-content" style="border-radius: 10px; overflow: hidden; font-family: 'Lora', serif;">
+                    <div class="modal-header" style="background-color: #2d6a4f; color: white; border-bottom: none;">
+                        <h5 class="modal-title mx-auto" id="postModalLabel" style="font-weight: 600;">Create a Post</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body p-4" style="background-color: #f8f9fa;">
+                        <form id="createPostForm" action="Backend/add-post-user-config.php" method="POST" enctype="multipart/form-data">
+                            <div class="mb-3">
+                                <label for="postImage" class="form-label">Upload Image</label>
+                                <input type="file" class="form-control" id="postImage" name="postImage" accept="image/*" onchange="previewImage(event)">
+                                <img id="imagePreview" class="img-fluid mt-3" style="display: none; border-radius: 5px;">
+                            </div>
+                            <div class="mb-3">
+                                <label for="postTitle" class="form-label">Post Title</label>
+                                <input type="text" class="form-control" id="postTitle" name="postTitle" placeholder="Enter the title of your post">
+                            </div>
 
-                        <div class="mb-3">
-                            <label for="postDescription11" class="form-label">Description</label>
-                            <textarea id="postDescription1" name="description1" rows="4" class="form-control"></textarea>
-                        </div>
+                            <div class="mb-3">
+                                <label for="postDescription11" class="form-label">Description</label>
+                                <textarea id="postDescription1" name="description1" rows="4" class="form-control"></textarea>
+                            </div>
 
-                        <div class="mb-3">
-                            <label for="locationSelect" class="form-label">Select Location</label>
-                            <select id="locationSelect" name="Muni_ID" class="form-select">
-                                <option value="" disabled selected>Select a location</option>
-                                <?php
-                                // Fetching municipalities from the database
-                                $query = "SELECT Muni_ID, MuniName FROM municipalities";
-                                $result = mysqli_query($conn, $query);
-                                while ($row = mysqli_fetch_assoc($result)) {
-                                    echo "<option value='" . $row['Muni_ID'] . "'>" . $row['MuniName'] . "</option>";
-                                }
-                                ?>
-                            </select>
-                        </div>
+                            <div class="mb-3">
+                                <label for="locationSelect" class="form-label">Select Location</label>
+                                <select id="locationSelect" name="Muni_ID" class="form-select">
+                                    <option value="" disabled selected>Select a location</option>
+                                    <?php
+                                    // Fetching municipalities from the database
+                                    $query = "SELECT Muni_ID, MuniName FROM municipalities";
+                                    $result = mysqli_query($conn, $query);
+                                    while ($row = mysqli_fetch_assoc($result)) {
+                                        echo "<option value='" . $row['Muni_ID'] . "'>" . $row['MuniName'] . "</option>";
+                                    }
+                                    ?>
+                                </select>
+                            </div>
 
-                        <div class="mb-3">
-                            <label for="placeType" class="form-label">Place Type</label>
-                            <select class="form-select" id="placeType" name="placeType">
-                                <option value="" disabled selected>Select a type of place</option>
-                                <option value="River">River</option>
-                                <option value="Church">Church</option>
-                                <option value="Mountain">Mountain</option>
-                                <option value="Park">Park</option>
-                                <option value="Lake">Lake</option>
-                                <option value="Historical Site">Historical Site</option>
-                                <option value="Museum">Museum</option>
-                                <option value="Bridge">Bridge</option>
-                                <option value="Waterfall">Waterfall</option>
-                                <option value="Temple">Temple</option>
-                            </select>
-                        </div>
+                            <div class="mb-3">
+                                <label for="placeType" class="form-label">Place Type</label>
+                                <select class="form-select" id="placeType" name="placeType">
+                                    <option value="" disabled selected>Select a type of place</option>
+                                    <option value="River">River</option>
+                                    <option value="Church">Church</option>
+                                    <option value="Mountain">Mountain</option>
+                                    <option value="Park">Park</option>
+                                    <option value="Lake">Lake</option>
+                                    <option value="Historical Site">Historical Site</option>
+                                    <option value="Museum">Museum</option>
+                                    <option value="Bridge">Bridge</option>
+                                    <option value="Waterfall">Waterfall</option>
+                                    <option value="Temple">Temple</option>
+                                </select>
+                            </div>
 
-                        <div class="text-center">
-                            <button type="submit" name="submit" class="btn btn-primary w-100" style="background-color: #2d6a4f; border-radius: 5px; padding: 10px 0;">Post</button>
-                        </div>
-                    </form>
+                            <div class="text-center">
+                                <button type="submit" name="submit" class="btn btn-primary w-100" style="background-color: #2d6a4f; border-radius: 5px; padding: 10px 0;">Post</button>
+                            </div>
+                        </form>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
-    </div>
+        </div>
     <?php endif; ?>
 
     <?php include 'includes/footer.php'; ?>

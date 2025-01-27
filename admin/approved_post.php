@@ -81,6 +81,6 @@ $approvedPosts = getApprovedPosts($conn, $role, $muni_id);
             </main>
         </div>
     </div>
-    <script src="../js/app.js"></script>
+    <script src="js/app.js"></script>
 </body>
 </html>

@@ -139,8 +139,6 @@ $admin_blogs = $result_admin->fetch_all(MYSQLI_ASSOC);
                                             <td><?php echo htmlspecialchars($blog['views']); ?></td>
                                             <td><?php echo htmlspecialchars($blog['created_at']); ?></td>
                                             <td>
-                                                <a href="controller/edit_blog.php?blog_id=<?php echo $blog['blog_id']; ?>" class="btn btn-sm btn-primary">Edit</a>
-                                                <a href="controller/delete_blog.php?blog_id=<?php echo $blog['blog_id']; ?>" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to delete this blog?');">Delete</a>
                                                 <a href="controller/view-blog-details.php?id=<?php echo $blog['blog_id']; ?>" class="btn btn-sm btn-info">View</a> 
 
                                                 <?php if ($blog['approval_status'] === 'pending'): ?>

@@ -45,7 +45,7 @@ if (isset($_POST['register'])) {
     // Validation rules
     $pattern_username   = "/^[a-zA-Z0-9_]{1,16}$/";
     $pattern_fullname   = "/^[a-zA-Z.\-\s]+$/";
-    $pattern_email      = "/^[a-zA-Z\d_\|\-\•\@]+@[a-zA-Z0-9]+\.[a-zA-Z\. ]+$/";
+    $pattern_email = "/^[a-zA-Z\d._\-]+@[a-zA-Z\d\-]+\.[a-zA-Z]{2,}$/";
     $pattern_password   = "/.{8,}/";
 
     // Initialize error array

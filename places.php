@@ -22,6 +22,9 @@ if ($result_place_types) {
 
 mysqli_close($conn);
 ?>
+
+
+
 <!DOCTYPE html>
 <html lang="en">
 
@@ -218,8 +221,8 @@ mysqli_close($conn);
                     </div>
 
                     <!-- Search Bar -->
-                    <div class="input-group" style="flex-shrink: 0; width: 300px;">
-                        <input type="text" id="search-input" class="form-control" placeholder="Search for a place...">
+                    <div class="input-group" style="flex-shrink: 0; width: 200px;">
+                        <input type="text" id="search-input" class="form-control" placeholder="Search">
                         <button class="btn btn-success" id="search-button">Search</button>
                     </div>
                 </div>

@@ -61,6 +61,27 @@ function getTotalLogs($conn, $role_filter, $search_term) {
     return $row['total'];
 }
 
+// Fetch all logs (no pagination)
+function getAllLogs($conn, $role_filter, $search_term) {
+    $query = "SELECT logs.*, users.role FROM logs 
+              LEFT JOIN users ON logs.user_id = users.user_id 
+              WHERE 1";
+    
+    // Add role filter if set
+    if ($role_filter !== '') {
+        $query .= " AND users.role = '$role_filter'";
+    }
+
+    // Add search term filter if set
+    if ($search_term !== '') {
+        $query .= " AND logs.username LIKE '%$search_term%'";
+    }
+
+    $query .= " ORDER BY logs.timestamp DESC";
+    
+    return mysqli_query($conn, $query);
+}
+
 // Get logs for the current page
 $logs = getLogs($conn, $limit, $offset, $role_filter, $search_term);
 
@@ -75,7 +96,6 @@ $end_page = min($total_pages, $start_page + $pages_per_window - 1); // End page 
 
 mysqli_close($conn);
 ?>
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -134,17 +154,23 @@ mysqli_close($conn);
                                 <?php endif; ?>
                             </div>
 
+                            <!-- Display Print and CSV Buttons -->
+                            <div class="d-flex justify-content-end mb-3">
+                                <button class="btn btn-secondary me-2" onclick="handlePrint()">Print Report</button>
+                                <button class="btn btn-success" onclick="handleCSV()">Download CSV</button>
+                            </div>
+
                             <!-- Logs Table -->
                             <div class="table-responsive">
                                 <table class="table table-striped table-hover table-bordered">
                                     <thead class="table-dark">
                                         <tr>
                                             <th>Log ID</th>
-                                            <th class="d-none d-xl-table-cell">User ID</th>
-                                            <th class="d-none d-md-table-cell">Username</th>
-                                            <th class="d-none d-md-table-cell">Action</th>
-                                            <th class="d-none d-md-table-cell">IP Address</th>
-                                            <th class="d-none d-md-table-cell">Timestamp</th>
+                                            <th>User ID</th>
+                                            <th>Username</th>
+                                            <th>Action</th>
+                                            <th>IP Address</th>
+                                            <th>Timestamp</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -152,11 +178,11 @@ mysqli_close($conn);
                                             while ($row = mysqli_fetch_assoc($logs)) {
                                                 echo "<tr>";
                                                 echo "<td>" . $row['id'] . "</td>"; 
-                                                echo "<td class='d-none d-xl-table-cell'>" . $row['user_id'] . "</td>";
-                                                echo "<td class='d-none d-md-table-cell'>" . $row['username'] . "</td>";
-                                                echo "<td class='d-none d-md-table-cell'>" . $row['action'] . "</td>";
-                                                echo "<td class='d-none d-md-table-cell'>" . $row['ip_address'] . "</td>";
-                                                echo "<td class='d-none d-md-table-cell'>" . $row['timestamp'] . "</td>";
+                                                echo "<td>" . $row['user_id'] . "</td>";
+                                                echo "<td>" . $row['username'] . "</td>";
+                                                echo "<td>" . $row['action'] . "</td>";
+                                                echo "<td>" . $row['ip_address'] . "</td>";
+                                                echo "<td>" . $row['timestamp'] . "</td>";
                                                 echo "</tr>";
                                             }
                                         ?>
@@ -209,6 +235,110 @@ mysqli_close($conn);
             </main>
         </div>
     </div>
+
     <script src="js/app.js"></script>
+    
+    <!-- Script to handle Print and CSV -->
+    <script>
+    function handlePrint() {
+        const length = prompt("Fetch logs for:\n1. All logs\n2. Current page logs", "1");
+        const preparedBy = prompt("Prepared by:", "Your Name");
+        document.body.setAttribute("data-prepared-by", "Prepared by: " + preparedBy);
+        document.body.setAttribute("data-created-at", new Date().toLocaleString());
+
+        if (length === "1") {
+            fetchAllLogs('print', preparedBy);
+        } else {
+            printPage(preparedBy);
+        }
+    }
+
+    function handleCSV() {
+        const length = prompt("Fetch logs for:\n1. All logs\n2. Current page logs", "1");
+        const preparedBy = prompt("Prepared by:", "Your Name");
+
+        if (length === "1") {
+            fetchAllLogs('csv', preparedBy);
+        } else {
+            downloadCSV(preparedBy);
+        }
+    }
+
+    function downloadCSV(preparedBy) {
+        // Get the table element
+        const table = document.querySelector("table");
+        let csv = [];
+        
+        // Get the headers
+        let headers = [];
+        table.querySelectorAll("thead th").forEach(header => headers.push(header.innerText));
+        csv.push(headers.join(","));
+        
+        // Get the rows
+        table.querySelectorAll("tbody tr").forEach(row => {
+            let rowData = [];
+            row.querySelectorAll("td").forEach(cell => rowData.push(cell.innerText));
+            csv.push(rowData.join(","));
+        });
+        
+        // Add footer with prepared by and created at
+        const createdAt = "Created at: " + new Date().toLocaleString();
+        csv.push(""); // Blank row before footer
+        csv.push("Prepared by: " + preparedBy);
+        csv.push(createdAt);
+        
+        // Create CSV file
+        const csvFile = new Blob([csv.join("\n")], { type: 'text/csv' });
+        const downloadLink = document.createElement("a");
+        downloadLink.download = "audit_trail_report.csv";
+        downloadLink.href = window.URL.createObjectURL(csvFile);
+        downloadLink.style.display = "none";
+        
+        document.body.appendChild(downloadLink);
+        downloadLink.click();
+        document.body.removeChild(downloadLink);
+    }
+
+    function fetchAllLogs(action, preparedBy = '') {
+        fetch('fetch_all_logs.php')  // You need to create this endpoint to fetch all logs
+            .then(response => response.json())
+            .then(data => {
+                if (action === 'csv') {
+                    let csv = [];
+                    csv.push("Log ID,User ID,Username,Action,IP Address,Timestamp");
+                    data.forEach(row => {
+                        csv.push(`${row.id},${row.user_id},${row.username},${row.action},${row.ip_address},${row.timestamp}`);
+                    });
+                    csv.push(""); // Blank row before footer
+                    csv.push("Prepared by: " + preparedBy);
+                    csv.push("Created at: " + new Date().toLocaleString());
+
+                    const csvFile = new Blob([csv.join("\n")], { type: 'text/csv' });
+                    const downloadLink = document.createElement("a");
+                    downloadLink.download = "audit_trail_report.csv";
+                    downloadLink.href = window.URL.createObjectURL(csvFile);
+                    downloadLink.style.display = "none";
+
+                    document.body.appendChild(downloadLink);
+                    downloadLink.click();
+                    document.body.removeChild(downloadLink);
+                } else if (action === 'print') {
+                    const printWindow = window.open();
+                    printWindow.document.write('<html><head><title>Logs</title></head><body>');
+                    printWindow.document.write('<h2 style="text-align:center">Audit Trail Report</h2>');
+                    printWindow.document.write('<table style="width:100%;border-collapse:collapse;margin-top:20px;"><thead><tr><th>Log ID</th><th>User ID</th><th>Username</th><th>Action</th><th>IP Address</th><th>Timestamp</th></tr></thead><tbody>');
+                    data.forEach(row => {
+                        printWindow.document.write(`<tr><td>${row.id}</td><td>${row.user_id}</td><td>${row.username}</td><td>${row.action}</td><td>${row.ip_address}</td><td>${row.timestamp}</td></tr>`);
+                    });
+                    printWindow.document.write('</tbody></table>');
+                    printWindow.document.write('<div style="text-align:right;margin-top:40px;font-size:12px;">Prepared by: ' + preparedBy + '<br>Created at: ' + new Date().toLocaleString() + '</div>');
+                    printWindow.document.write('</body></html>');
+                    printWindow.document.close();
+                    printWindow.print();
+                }
+            });
+    }
+    </script>
+
 </body>
 </html>
